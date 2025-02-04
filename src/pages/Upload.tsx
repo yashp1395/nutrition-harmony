@@ -2,13 +2,28 @@ import { useState } from "react";
 import Navbar from "../components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload as UploadIcon, Image, AlertCircle } from "lucide-react";
+import { Upload as UploadIcon, Image, AlertCircle, Edit2 } from "lucide-react";
+import { analyzeImage } from "../utils/visionApi";
+import { getFoodItems } from "../lib/supabase";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
+import type { FoodItem } from "../types/database.types";
+
+interface DetectedFood {
+  name: string;
+  confidence: number;
+  nutrition?: FoodItem;
+  isManualEntry?: boolean;
+}
 
 const Upload = () => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [detectedFoods, setDetectedFoods] = useState<DetectedFood[]>([]);
+  const [manualEntry, setManualEntry] = useState("");
+  const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -22,23 +37,108 @@ const Upload = () => {
     }
   };
 
+  const matchFoodWithDatabase = async (foodName: string) => {
+    try {
+      const items = await getFoodItems(foodName);
+      return items.length > 0 ? items[0] : null;
+    } catch (error) {
+      console.error('Error matching food:', error);
+      return null;
+    }
+  };
+
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file || !preview) return;
 
     setAnalyzing(true);
     setProgress(0);
+    setDetectedFoods([]);
 
-    // Simulate upload and analysis progress
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setProgress(i);
-    }
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => Math.min(prev + 10, 90));
+      }, 200);
 
-    // Simulate completion
-    setTimeout(() => {
+      // Analyze image using Google Vision API
+      const visionResult = await analyzeImage(preview);
+      
+      // Process detected objects and labels
+      const detectedItems = new Set<string>();
+      
+      // Add objects
+      visionResult.responses[0].localizedObjectAnnotations?.forEach((obj: any) => {
+        detectedItems.add(obj.name.toLowerCase());
+      });
+      
+      // Add labels
+      visionResult.responses[0].labelAnnotations?.forEach((label: any) => {
+        if (label.description.toLowerCase().includes('food') || 
+            label.description.toLowerCase().includes('dish') ||
+            label.description.toLowerCase().includes('meal')) {
+          detectedItems.add(label.description.toLowerCase());
+        }
+      });
+
+      // Match with database and set nutrition info
+      const foodPromises = Array.from(detectedItems).map(async (item) => {
+        const nutrition = await matchFoodWithDatabase(item);
+        return {
+          name: item,
+          confidence: 0.8, // Example confidence score
+          nutrition,
+        };
+      });
+
+      const foods = await Promise.all(foodPromises);
+      setDetectedFoods(foods.filter(food => food.nutrition)); // Only keep foods found in database
+
+      clearInterval(progressInterval);
+      setProgress(100);
+      
+      toast({
+        title: "Analysis Complete",
+        description: `Detected ${foods.length} food items`,
+      });
+    } catch (error) {
+      console.error('Error analyzing image:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to analyze image. Please try again.",
+      });
+    } finally {
       setAnalyzing(false);
-      console.log("Upload complete");
-    }, 2500);
+    }
+  };
+
+  const handleManualAdd = async () => {
+    if (!manualEntry.trim()) return;
+
+    const nutrition = await matchFoodWithDatabase(manualEntry);
+    if (nutrition) {
+      setDetectedFoods([...detectedFoods, {
+        name: manualEntry,
+        confidence: 1,
+        nutrition,
+        isManualEntry: true
+      }]);
+      setManualEntry("");
+      toast({
+        title: "Food Added",
+        description: `${manualEntry} has been added to the list`,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Food Not Found",
+        description: "This food item was not found in our database",
+      });
+    }
+  };
+
+  const removeFood = (index: number) => {
+    setDetectedFoods(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -85,6 +185,7 @@ const Upload = () => {
                       onClick={() => {
                         setFile(null);
                         setPreview(null);
+                        setDetectedFoods([]);
                       }}
                     >
                       Remove
@@ -106,6 +207,60 @@ const Upload = () => {
                   <Progress value={progress} />
                 </div>
               )}
+
+              {/* Detected Foods List */}
+              {detectedFoods.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Detected Foods</h2>
+                  <div className="space-y-3">
+                    {detectedFoods.map((food, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium">{food.name}</p>
+                          <p className="text-sm text-gray-600">
+                            Calories: {food.nutrition?.calories} kcal | 
+                            Protein: {food.nutrition?.protein}g | 
+                            Carbs: {food.nutrition?.carbs}g | 
+                            Fat: {food.nutrition?.fat}g
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFood(index)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Total Nutrition */}
+                  <div className="mt-4 p-4 bg-primary/10 rounded-lg">
+                    <h3 className="font-semibold mb-2">Total Nutrition</h3>
+                    <p>
+                      Calories: {detectedFoods.reduce((sum, food) => sum + (food.nutrition?.calories || 0), 0)} kcal |
+                      Protein: {detectedFoods.reduce((sum, food) => sum + (food.nutrition?.protein || 0), 0)}g |
+                      Carbs: {detectedFoods.reduce((sum, food) => sum + (food.nutrition?.carbs || 0), 0)}g |
+                      Fat: {detectedFoods.reduce((sum, food) => sum + (food.nutrition?.fat || 0), 0)}g
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Manual Entry */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Manually add a food item..."
+                  value={manualEntry}
+                  onChange={(e) => setManualEntry(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleManualAdd()}
+                />
+                <Button onClick={handleManualAdd}>
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Add
+                </Button>
+              </div>
 
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="flex gap-2">

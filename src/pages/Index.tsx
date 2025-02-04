@@ -1,6 +1,6 @@
 import Navbar from "../components/Navbar";
 import SearchBar from "../components/SearchBar";
-import { Apple, Carrot, Coffee } from "lucide-react";
+import { Apple, Carrot, Coffee, Search, Upload, User } from "lucide-react";
 
 const Index = () => {
   return (

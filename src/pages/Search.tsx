@@ -1,65 +1,29 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getFoodItems, getIndianFoodItems } from "../lib/supabase";
 import Navbar from "../components/Navbar";
-import SearchBar from "../components/SearchBar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Apple, Beef, Carrot, Fish, Pizza } from "lucide-react";
-
-interface FoodItem {
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  icon: JSX.Element;
-}
-
-const mockFoodData: FoodItem[] = [
-  {
-    name: "Apple",
-    calories: 95,
-    protein: 0.5,
-    carbs: 25,
-    fat: 0.3,
-    icon: <Apple className="w-8 h-8 text-red-500" />,
-  },
-  {
-    name: "Beef Steak",
-    calories: 250,
-    protein: 26,
-    carbs: 0,
-    fat: 17,
-    icon: <Beef className="w-8 h-8 text-red-700" />,
-  },
-  {
-    name: "Carrot",
-    calories: 41,
-    protein: 0.9,
-    carbs: 10,
-    fat: 0.2,
-    icon: <Carrot className="w-8 h-8 text-orange-500" />,
-  },
-  {
-    name: "Salmon",
-    calories: 208,
-    protein: 22,
-    carbs: 0,
-    fat: 13,
-    icon: <Fish className="w-8 h-8 text-pink-400" />,
-  },
-  {
-    name: "Pizza Slice",
-    calories: 285,
-    protein: 12,
-    carbs: 36,
-    fat: 10,
-    icon: <Pizza className="w-8 h-8 text-yellow-600" />,
-  },
-];
+import SearchBar from "../components/SearchBar";
+import type { FoodItem } from "../types/database.types";
 
 const Search = () => {
+  const [query, setQuery] = useState("");
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
-  const [searchResults, setSearchResults] = useState<FoodItem[]>(mockFoodData);
+  const [activeTab, setActiveTab] = useState("all");
+
+  const { data: allFoods, isLoading: isLoadingAll } = useQuery({
+    queryKey: ["foods", query],
+    queryFn: () => getFoodItems(query),
+  });
+
+  const { data: indianFoods, isLoading: isLoadingIndian } = useQuery({
+    queryKey: ["indian-foods", query],
+    queryFn: () => getIndianFoodItems(query),
+  });
 
   const handleFoodSelect = (food: FoodItem) => {
     setSelectedFood(food);
@@ -75,43 +39,72 @@ const Search = () => {
             <SearchBar />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-2xl font-semibold mb-4">Search Results</h2>
-              <div className="space-y-4">
-                {searchResults.map((food) => (
-                  <Button
-                    key={food.name}
-                    variant="outline"
-                    className="w-full justify-start gap-4 h-auto py-4"
-                    onClick={() => handleFoodSelect(food)}
-                  >
-                    {food.icon}
-                    <div className="text-left">
-                      <div className="font-medium">{food.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {food.calories} calories
+          <Tabs defaultValue="all" className="mb-8">
+            <TabsList>
+              <TabsTrigger value="all">All Foods</TabsTrigger>
+              <TabsTrigger value="indian">Indian Cuisine</TabsTrigger>
+            </TabsList>
+            <TabsContent value="all">
+              <div className="grid gap-4">
+                {isLoadingAll ? (
+                  <div>Loading...</div>
+                ) : (
+                  allFoods?.map((food) => (
+                    <Button
+                      key={food.id}
+                      variant="outline"
+                      className="w-full justify-start gap-4 h-auto py-4"
+                      onClick={() => handleFoodSelect(food)}
+                    >
+                      <div className="text-left">
+                        <div className="font-medium">{food.name}</div>
+                        <div className="text-sm text-gray-500">
+                          {food.calories} calories
+                        </div>
                       </div>
-                    </div>
-                  </Button>
-                ))}
+                    </Button>
+                  ))
+                )}
               </div>
-            </div>
+            </TabsContent>
+            <TabsContent value="indian">
+              <div className="grid gap-4">
+                {isLoadingIndian ? (
+                  <div>Loading...</div>
+                ) : (
+                  indianFoods?.map((food) => (
+                    <Button
+                      key={food.id}
+                      variant="outline"
+                      className="w-full justify-start gap-4 h-auto py-4"
+                      onClick={() => handleFoodSelect(food)}
+                    >
+                      <div className="text-left">
+                        <div className="font-medium">{food.name}</div>
+                        <div className="text-sm text-gray-500">
+                          {food.calories} calories
+                        </div>
+                      </div>
+                    </Button>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
 
-            {selectedFood && (
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <div className="flex items-center gap-4 mb-6">
-                  {selectedFood.icon}
-                  <h2 className="text-2xl font-semibold">{selectedFood.name}</h2>
-                </div>
-
+          {selectedFood && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{selectedFood.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-6">
                   <div>
                     <div className="flex justify-between mb-2">
                       <span className="font-medium">Calories</span>
                       <span>{selectedFood.calories} kcal</span>
                     </div>
-                    <Progress value={selectedFood.calories / 10} />
+                    <Progress value={(selectedFood.calories / 2000) * 100} />
                   </div>
 
                   <div>
@@ -119,7 +112,7 @@ const Search = () => {
                       <span className="font-medium">Protein</span>
                       <span>{selectedFood.protein}g</span>
                     </div>
-                    <Progress value={selectedFood.protein * 2} />
+                    <Progress value={(selectedFood.protein / 50) * 100} />
                   </div>
 
                   <div>
@@ -127,7 +120,7 @@ const Search = () => {
                       <span className="font-medium">Carbs</span>
                       <span>{selectedFood.carbs}g</span>
                     </div>
-                    <Progress value={selectedFood.carbs} />
+                    <Progress value={(selectedFood.carbs / 300) * 100} />
                   </div>
 
                   <div>
@@ -135,12 +128,20 @@ const Search = () => {
                       <span className="font-medium">Fat</span>
                       <span>{selectedFood.fat}g</span>
                     </div>
-                    <Progress value={selectedFood.fat * 2} />
+                    <Progress value={(selectedFood.fat / 65) * 100} />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="font-medium">Fiber</span>
+                      <span>{selectedFood.fiber}g</span>
+                    </div>
+                    <Progress value={(selectedFood.fiber / 25) * 100} />
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
     </div>

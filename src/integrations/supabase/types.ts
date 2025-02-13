@@ -9,7 +9,113 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      food_items: {
+        Row: {
+          calories: number
+          carbs: number | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          fat: number | null
+          fiber: number | null
+          id: string
+          image_url: string | null
+          is_indian_cuisine: boolean | null
+          name: string
+          protein: number | null
+        }
+        Insert: {
+          calories: number
+          carbs?: number | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          fat?: number | null
+          fiber?: number | null
+          id?: string
+          image_url?: string | null
+          is_indian_cuisine?: boolean | null
+          name: string
+          protein?: number | null
+        }
+        Update: {
+          calories?: number
+          carbs?: number | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          fat?: number | null
+          fiber?: number | null
+          id?: string
+          image_url?: string | null
+          is_indian_cuisine?: boolean | null
+          name?: string
+          protein?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_meals: {
+        Row: {
+          created_at: string | null
+          date: string | null
+          food_id: string
+          id: string
+          meal_type: string | null
+          portion_size: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string | null
+          food_id: string
+          id?: string
+          meal_type?: string | null
+          portion_size?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string | null
+          food_id?: string
+          id?: string
+          meal_type?: string | null
+          portion_size?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_meals_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "food_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

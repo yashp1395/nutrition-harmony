@@ -1,7 +1,48 @@
-import { Link } from "react-router-dom";
-import { Home, Search, Upload, User, Info } from "lucide-react";
+
+import { Link, useNavigate } from "react-router-dom";
+import { Home, Search, Upload, User, Info, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
+import { useEffect, useState } from "react";
 
 const Navbar = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out successfully",
+        description: "Come back soon!",
+      });
+      navigate("/");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+      });
+    }
+  };
+
   return (
     <nav className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,10 +69,28 @@ const Navbar = () => {
               <Info className="w-5 h-5" />
               <span>About</span>
             </Link>
-            <Link to="/profile" className="nav-link">
-              <User className="w-5 h-5" />
-              <span>Profile</span>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link to="/profile" className="nav-link">
+                  <User className="w-5 h-5" />
+                  <span>Profile</span>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="nav-link"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>Logout</span>
+                </Button>
+              </>
+            ) : (
+              <Link to="/login" className="nav-link">
+                <User className="w-5 h-5" />
+                <span>Login</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>

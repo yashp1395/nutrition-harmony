@@ -12,7 +12,7 @@ import Upload from "./pages/Upload";
 import About from "./pages/About";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
-import Login from "./pages/Login";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -41,7 +41,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!authenticated) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/auth" />;
   }
 
   return children;
@@ -54,20 +54,32 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/search" element={<Search />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Index />
+            </ProtectedRoute>
+          } />
+          <Route path="/search" element={
+            <ProtectedRoute>
+              <Search />
+            </ProtectedRoute>
+          } />
           <Route path="/upload" element={
             <ProtectedRoute>
               <Upload />
             </ProtectedRoute>
           } />
-          <Route path="/about" element={<About />} />
+          <Route path="/about" element={
+            <ProtectedRoute>
+              <About />
+            </ProtectedRoute>
+          } />
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />
             </ProtectedRoute>
           } />
-          <Route path="/login" element={<Login />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

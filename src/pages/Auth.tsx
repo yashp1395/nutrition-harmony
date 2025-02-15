@@ -11,7 +11,6 @@ import { supabase } from "@/lib/supabase";
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -23,16 +22,11 @@ const Auth = () => {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
       });
       if (error) throw error;
       toast({
-        title: "Success!",
-        description: "Please check your email to verify your account.",
+        title: "Account created!",
+        description: "You can now sign in with your credentials.",
       });
     } catch (error: any) {
       toast({
@@ -72,7 +66,7 @@ const Auth = () => {
         <CardHeader>
           <CardTitle>Welcome to Calorie Tracker</CardTitle>
           <CardDescription>
-            Sign in to your account or create a new one
+            Enter your email and password to continue
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -93,9 +87,10 @@ const Auth = () => {
                   />
                   <Input
                     type="password"
-                    placeholder="Password"
+                    placeholder="Password (min 6 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    minLength={6}
                     required
                   />
                 </div>
@@ -108,12 +103,6 @@ const Auth = () => {
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
                   <Input
-                    placeholder="Full Name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
-                  <Input
                     type="email"
                     placeholder="Email"
                     value={email}
@@ -122,9 +111,10 @@ const Auth = () => {
                   />
                   <Input
                     type="password"
-                    placeholder="Password"
+                    placeholder="Password (min 6 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    minLength={6}
                     required
                   />
                 </div>

@@ -1,7 +1,7 @@
+
 import { createClient } from '@supabase/supabase-js';
 import type { UserMeal } from '../types/database.types';
 
-// Ensure environment variables are defined
 const supabaseUrl = 'https://njasjoepdafcpjicrfud.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qYXNqb2VwZGFmY3BqaWNyZnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg2NTE0MDYsImV4cCI6MjA1NDIyNzQwNn0.oBIOYkKJGozaYJEnDsfSmDA5YBqmK7Gl_fKFANetma8';
 
@@ -13,7 +13,18 @@ if (!supabaseAnonKey) {
   throw new Error('Missing Supabase anon key');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+// Debug helper for auth state
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Auth state changed:', event, session);
+});
 
 export const getFoodItems = async (query: string = '') => {
   const { data, error } = await supabase

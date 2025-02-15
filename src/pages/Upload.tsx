@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Navbar from "../components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -23,17 +23,59 @@ const Upload = () => {
   const [progress, setProgress] = useState(0);
   const [detectedFoods, setDetectedFoods] = useState<DetectedFood[]>([]);
   const [manualEntry, setManualEntry] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      setFile(selectedFile);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(selectedFile);
+      processFile(selectedFile);
+    }
+  };
+
+  const processFile = (selectedFile: File) => {
+    setFile(selectedFile);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreview(reader.result as string);
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget === dropZoneRef.current) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && droppedFile.type.startsWith('image/')) {
+      processFile(droppedFile);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Invalid file",
+        description: "Please drop an image file.",
+      });
     }
   };
 
@@ -151,7 +193,14 @@ const Upload = () => {
 
             <div className="space-y-6">
               {!preview ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
+                <div
+                  ref={dropZoneRef}
+                  className={`border-2 ${isDragging ? 'border-primary border-dashed bg-primary/5' : 'border-dashed border-gray-300'} rounded-lg p-8`}
+                  onDragEnter={handleDragEnter}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   <div className="flex flex-col items-center justify-center gap-4">
                     <Image className="w-12 h-12 text-gray-400" />
                     <div className="text-center">
@@ -208,7 +257,6 @@ const Upload = () => {
                 </div>
               )}
 
-              {/* Detected Foods List */}
               {detectedFoods.length > 0 && (
                 <div className="space-y-4">
                   <h2 className="text-xl font-semibold">Detected Foods</h2>
@@ -235,7 +283,6 @@ const Upload = () => {
                     ))}
                   </div>
 
-                  {/* Total Nutrition */}
                   <div className="mt-4 p-4 bg-primary/10 rounded-lg">
                     <h3 className="font-semibold mb-2">Total Nutrition</h3>
                     <p>
@@ -248,7 +295,6 @@ const Upload = () => {
                 </div>
               )}
 
-              {/* Manual Entry */}
               <div className="flex gap-2">
                 <Input
                   placeholder="Manually add a food item..."

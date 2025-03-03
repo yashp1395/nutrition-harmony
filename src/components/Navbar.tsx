@@ -86,7 +86,7 @@ const Navbar = () => {
                 </Button>
               </>
             ) : (
-              <Link to="/login" className="nav-link">
+              <Link to="/auth" className="nav-link">
                 <User className="w-5 h-5" />
                 <span>Login</span>
               </Link>
@@ -96,6 +96,6 @@ const Navbar = () => {
       </div>
     </nav>
   );
-};
+}
 
 export default Navbar;

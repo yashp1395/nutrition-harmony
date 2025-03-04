@@ -1,8 +1,9 @@
+
 import { useState, useRef } from "react";
 import Navbar from "../components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload as UploadIcon, Image, AlertCircle, Edit2 } from "lucide-react";
+import { Upload as UploadIcon, Image, AlertCircle, Edit2, Camera } from "lucide-react";
 import { analyzeImage } from "../utils/visionApi";
 import { getFoodItems } from "../lib/supabase";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ const Upload = () => {
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -76,6 +78,12 @@ const Upload = () => {
         title: "Invalid file",
         description: "Please drop an image file.",
       });
+    }
+  };
+
+  const handleCameraCapture = () => {
+    if (cameraRef.current) {
+      cameraRef.current.click();
     }
   };
 
@@ -207,17 +215,37 @@ const Upload = () => {
                       <p className="text-gray-600">
                         Drag and drop your food image here, or
                       </p>
-                      <label className="mt-2 inline-block">
+                      <div className="mt-4 flex flex-wrap justify-center gap-3">
+                        <label className="inline-block">
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                          />
+                          <Button variant="outline" type="button" className="cursor-pointer">
+                            <UploadIcon className="w-4 h-4 mr-2" />
+                            Browse Files
+                          </Button>
+                        </label>
+                        
                         <input
+                          ref={cameraRef}
                           type="file"
-                          className="hidden"
                           accept="image/*"
+                          capture="environment"
+                          className="hidden"
                           onChange={handleFileChange}
                         />
-                        <span className="text-primary hover:text-primary/80 cursor-pointer">
-                          browse to upload
-                        </span>
-                      </label>
+                        <Button 
+                          variant="outline" 
+                          type="button"
+                          onClick={handleCameraCapture}
+                        >
+                          <Camera className="w-4 h-4 mr-2" />
+                          Take Photo
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

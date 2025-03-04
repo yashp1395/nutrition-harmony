@@ -25,9 +25,12 @@ const Upload = () => {
   const [detectedFoods, setDetectedFoods] = useState<DetectedFood[]>([]);
   const [manualEntry, setManualEntry] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const { toast } = useToast();
   const dropZoneRef = useRef<HTMLDivElement>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -81,10 +84,68 @@ const Upload = () => {
     }
   };
 
-  const handleCameraCapture = () => {
-    if (cameraRef.current) {
-      cameraRef.current.click();
+  const startCamera = async () => {
+    setShowCamera(true);
+    
+    try {
+      if (videoRef.current) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+          audio: false
+        });
+        
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      toast({
+        variant: "destructive",
+        title: "Camera Error",
+        description: "Could not access your camera. Please check permissions.",
+      });
+      setShowCamera(false);
     }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw current video frame to canvas
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert canvas to file
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+            processFile(file);
+            
+            // Stop camera stream
+            stopCamera();
+          }
+        }, 'image/jpeg', 0.95);
+      }
+    }
+  };
+  
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      const tracks = stream.getTracks();
+      
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    
+    setShowCamera(false);
   };
 
   const matchFoodWithDatabase = async (foodName: string) => {
@@ -200,7 +261,28 @@ const Upload = () => {
             <h1 className="text-2xl font-semibold mb-6">Upload Food Image</h1>
 
             <div className="space-y-6">
-              {!preview ? (
+              {showCamera ? (
+                <div className="relative">
+                  <div className="rounded-lg overflow-hidden">
+                    <video 
+                      ref={videoRef} 
+                      className="w-full h-auto"
+                      playsInline
+                      autoPlay
+                    ></video>
+                  </div>
+                  <canvas ref={canvasRef} className="hidden"></canvas>
+                  <div className="mt-4 flex justify-center gap-4">
+                    <Button onClick={capturePhoto}>
+                      <Camera className="w-4 h-4 mr-2" />
+                      Capture Photo
+                    </Button>
+                    <Button variant="outline" onClick={stopCamera}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : !preview ? (
                 <div
                   ref={dropZoneRef}
                   className={`border-2 ${isDragging ? 'border-primary border-dashed bg-primary/5' : 'border-dashed border-gray-300'} rounded-lg p-8`}
@@ -218,6 +300,7 @@ const Upload = () => {
                       <div className="mt-4 flex flex-wrap justify-center gap-3">
                         <label className="inline-block">
                           <input
+                            ref={fileInputRef}
                             type="file"
                             className="hidden"
                             accept="image/*"
@@ -229,18 +312,10 @@ const Upload = () => {
                           </Button>
                         </label>
                         
-                        <input
-                          ref={cameraRef}
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={handleFileChange}
-                        />
                         <Button 
                           variant="outline" 
                           type="button"
-                          onClick={handleCameraCapture}
+                          onClick={startCamera}
                         >
                           <Camera className="w-4 h-4 mr-2" />
                           Take Photo

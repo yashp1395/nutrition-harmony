@@ -91,6 +91,7 @@ const Upload = () => {
 
               {analyzing && <AnalysisProgress progress={progress} />}
 
+              {/* Detected foods list now appears before the manual entry form and tips panel */}
               <DetectedFoodsList 
                 detectedFoods={detectedFoods} 
                 onRemoveFood={removeFood} 

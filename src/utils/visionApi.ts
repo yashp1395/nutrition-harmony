@@ -1,6 +1,6 @@
 
 export const analyzeImage = async (imageBase64: string) => {
-  const API_KEY = 'd1f2f9ee30c9e007787a232c60cb4d93eeba05a0';
+  const API_KEY = 'd1f2f9ee30c9e007787a232c60cb4d93eeba05a0'; // LogMeal API key
   const API_ENDPOINT = 'https://api.logmeal.es/v2/image/recognition/complete';
   
   // Convert base64 to blob
@@ -40,7 +40,7 @@ export const analyzeImage = async (imageBase64: string) => {
         localizedObjectAnnotations: foodItems.map((item: any) => ({
           name: item.name.toLowerCase(),
           confidence: item.prob,
-          servingSize: nutritionalInfo.servingSize || 'Standard serving',
+          servingSize: nutritionalInfo.servingSize || getServingSize(item.name),
           calories: nutritionalInfo.calories || calculateEstimatedCalories(item.name),
           nutrients: {
             protein: nutritionalInfo.protein || estimateNutrient(item.name, 'protein'),
@@ -59,6 +59,35 @@ export const analyzeImage = async (imageBase64: string) => {
     console.error('Error analyzing image:', error);
     throw error;
   }
+};
+
+// Get appropriate serving size for common foods
+const getServingSize = (foodName: string): string => {
+  const foodNameLower = foodName.toLowerCase();
+  const servingSizes: {[key: string]: string} = {
+    'apple': '1 medium (182g)',
+    'banana': '1 medium (118g)',
+    'orange': '1 medium (131g)',
+    'pizza': '1 slice (107g)',
+    'burger': '1 regular (170g)',
+    'salad': '1 bowl (150g)',
+    'rice': '1 cup cooked (158g)',
+    'pasta': '1 cup cooked (140g)',
+    'bread': '1 slice (25g)',
+    'chicken': '100g cooked',
+    'fish': '100g cooked',
+    'beef': '100g cooked',
+    'potato': '1 medium (173g)',
+    'donut': '1 regular (47g)',
+    'cake': '1 slice (80g)',
+    'ice cream': '1/2 cup (66g)'
+  };
+  
+  const matchedFood = Object.keys(servingSizes).find(food => 
+    foodNameLower.includes(food)
+  );
+  
+  return matchedFood ? servingSizes[matchedFood] : 'Standard serving';
 };
 
 // Fallback function to estimate calories if the API doesn't provide them

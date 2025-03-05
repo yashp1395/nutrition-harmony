@@ -1,3 +1,4 @@
+
 // Food database with nutrition information
 const foodDatabase = [
   { 
@@ -186,29 +187,63 @@ export const analyzeImage = async (imageBase64: string) => {
     console.log('LogMeal API response:', data);
     
     // Map LogMeal API response to our expected format
-    // The response structure may need to be adjusted based on actual LogMeal API response
-    const detectedFoods = data.recognition_results.map((result: any) => {
-      const foodName = result.name.toLowerCase();
-      
-      // Try to find matching food in our database for nutrition info
-      const matchedFood = foodDatabase.find(item => 
-        item.name.toLowerCase().includes(foodName) || 
-        foodName.includes(item.name.toLowerCase())
-      );
-      
-      return {
-        name: foodName,
-        confidence: result.prob,
-        servingSize: matchedFood?.servingSize || 'Standard serving',
-        calories: matchedFood?.calories || result.nutrition?.calories || 100,
-        nutrients: matchedFood?.nutrients || {
-          protein: result.nutrition?.protein || 2,
-          carbs: result.nutrition?.carbs || 15,
-          fat: result.nutrition?.fat || 5,
-          fiber: result.nutrition?.fiber || 1
-        }
-      };
-    });
+    // Extract food items from the response
+    let detectedFoods = [];
+    
+    if (data.recognition_results && Array.isArray(data.recognition_results)) {
+      detectedFoods = data.recognition_results.map((result: any) => {
+        const foodName = result.name.toLowerCase();
+        
+        // Try to find matching food in our database for nutrition info
+        const matchedFood = foodDatabase.find(item => 
+          item.name.toLowerCase().includes(foodName) || 
+          foodName.includes(item.name.toLowerCase())
+        );
+        
+        return {
+          name: foodName,
+          confidence: result.prob,
+          servingSize: matchedFood?.servingSize || 'Standard serving',
+          calories: matchedFood?.calories || 100,
+          nutrients: matchedFood?.nutrients || {
+            protein: 2,
+            carbs: 15,
+            fat: 5,
+            fiber: 1
+          }
+        };
+      });
+    } else if (data.foodFamily && data.foodFamily.length > 0) {
+      // Alternative response format
+      detectedFoods = data.foodFamily.map((food: any) => {
+        const foodName = food.name.toLowerCase();
+        
+        // Try to find matching food in our database
+        const matchedFood = foodDatabase.find(item => 
+          item.name.toLowerCase().includes(foodName) || 
+          foodName.includes(item.name.toLowerCase())
+        );
+        
+        return {
+          name: foodName,
+          confidence: 0.85,
+          servingSize: matchedFood?.servingSize || 'Standard serving',
+          calories: matchedFood?.calories || 100,
+          nutrients: matchedFood?.nutrients || {
+            protein: 2,
+            carbs: 15,
+            fat: 5,
+            fiber: 1
+          }
+        };
+      });
+    }
+    
+    // If no foods were detected, fall back to mock implementation
+    if (detectedFoods.length === 0) {
+      console.warn('No foods detected by LogMeal API, using mock implementation');
+      return mockAnalyzeImage(imageBase64);
+    }
     
     // Format response to match the structure expected by our application
     return {

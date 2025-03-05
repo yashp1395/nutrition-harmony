@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Upload as UploadIcon } from "lucide-react";
+import { Upload as UploadIcon, Loader2 } from "lucide-react";
 
 interface ImagePreviewProps {
   preview: string;
@@ -21,12 +21,22 @@ const ImagePreview = ({ preview, analyzing, onRemove, onAnalyze }: ImagePreviewP
         <Button
           variant="outline"
           onClick={onRemove}
+          disabled={analyzing}
         >
           Remove
         </Button>
         <Button onClick={onAnalyze} disabled={analyzing}>
-          <UploadIcon className="w-4 h-4 mr-2" />
-          {analyzing ? "Analyzing..." : "Analyze Image"}
+          {analyzing ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Analyzing...
+            </>
+          ) : (
+            <>
+              <UploadIcon className="w-4 h-4 mr-2" />
+              Analyze Image
+            </>
+          )}
         </Button>
       </div>
     </div>

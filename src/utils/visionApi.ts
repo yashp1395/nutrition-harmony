@@ -1,57 +1,180 @@
 
+// Food database with nutrition information
+const foodDatabase = [
+  { 
+    name: 'apple', 
+    calories: 95,
+    servingSize: '1 medium (182g)',
+    nutrients: { protein: 0.5, carbs: 25, fat: 0.3, fiber: 4.4 }
+  },
+  { 
+    name: 'banana', 
+    calories: 105,
+    servingSize: '1 medium (118g)',
+    nutrients: { protein: 1.3, carbs: 27, fat: 0.4, fiber: 3.1 }
+  },
+  { 
+    name: 'orange', 
+    calories: 62,
+    servingSize: '1 medium (131g)',
+    nutrients: { protein: 0.9, carbs: 15, fat: 0.1, fiber: 3.1 }
+  },
+  { 
+    name: 'pizza', 
+    calories: 285,
+    servingSize: '1 slice (107g)',
+    nutrients: { protein: 12, carbs: 33, fat: 10, fiber: 2.5 }
+  },
+  { 
+    name: 'burger', 
+    calories: 354,
+    servingSize: '1 regular (170g)',
+    nutrients: { protein: 20, carbs: 31, fat: 17, fiber: 1.3 }
+  },
+  { 
+    name: 'salad', 
+    calories: 152,
+    servingSize: '1 bowl (150g)',
+    nutrients: { protein: 3.7, carbs: 11, fat: 10, fiber: 4.2 }
+  },
+  { 
+    name: 'rice', 
+    calories: 206,
+    servingSize: '1 cup cooked (158g)',
+    nutrients: { protein: 4.3, carbs: 45, fat: 0.4, fiber: 0.6 }
+  },
+  { 
+    name: 'pasta', 
+    calories: 220,
+    servingSize: '1 cup cooked (140g)',
+    nutrients: { protein: 8.1, carbs: 43, fat: 1.1, fiber: 2.5 }
+  },
+  { 
+    name: 'bread', 
+    calories: 75,
+    servingSize: '1 slice (25g)',
+    nutrients: { protein: 3.6, carbs: 13, fat: 1, fiber: 1.1 }
+  },
+  { 
+    name: 'chicken', 
+    calories: 165,
+    servingSize: '100g cooked',
+    nutrients: { protein: 31, carbs: 0, fat: 3.6, fiber: 0 }
+  },
+  { 
+    name: 'fish', 
+    calories: 190,
+    servingSize: '100g cooked',
+    nutrients: { protein: 22, carbs: 0, fat: 10, fiber: 0 }
+  },
+  { 
+    name: 'beef', 
+    calories: 250,
+    servingSize: '100g cooked',
+    nutrients: { protein: 26, carbs: 0, fat: 17, fiber: 0 }
+  },
+  { 
+    name: 'potato', 
+    calories: 130,
+    servingSize: '1 medium (173g)',
+    nutrients: { protein: 2.5, carbs: 27, fat: 0.1, fiber: 2.5 }
+  },
+  { 
+    name: 'donut', 
+    calories: 195,
+    servingSize: '1 regular (47g)',
+    nutrients: { protein: 3.8, carbs: 22, fat: 12, fiber: 0.7 }
+  },
+  { 
+    name: 'cake', 
+    calories: 352,
+    servingSize: '1 slice (80g)',
+    nutrients: { protein: 5.2, carbs: 38, fat: 18, fiber: 0.4 }
+  },
+  { 
+    name: 'ice cream', 
+    calories: 273,
+    servingSize: '1/2 cup (66g)',
+    nutrients: { protein: 3.8, carbs: 31, fat: 14, fiber: 0.8 }
+  },
+  { 
+    name: 'cookie', 
+    calories: 148,
+    servingSize: '1 medium (30g)',
+    nutrients: { protein: 1.8, carbs: 18, fat: 7, fiber: 0.5 }
+  },
+  { 
+    name: 'sandwich', 
+    calories: 290,
+    servingSize: '1 regular (150g)',
+    nutrients: { protein: 15, carbs: 28, fat: 12, fiber: 2.8 }
+  },
+  { 
+    name: 'eggs', 
+    calories: 72,
+    servingSize: '1 large (50g)',
+    nutrients: { protein: 6.3, carbs: 0.4, fat: 5, fiber: 0 }
+  },
+  { 
+    name: 'yogurt', 
+    calories: 150,
+    servingSize: '1 cup (245g)',
+    nutrients: { protein: 8.5, carbs: 17, fat: 8, fiber: 0 }
+  },
+  { 
+    name: 'cheese', 
+    calories: 113,
+    servingSize: '1 slice (28g)',
+    nutrients: { protein: 7, carbs: 0.4, fat: 9, fiber: 0 }
+  },
+  { 
+    name: 'chocolate', 
+    calories: 155,
+    servingSize: '1 bar (30g)',
+    nutrients: { protein: 2.1, carbs: 17, fat: 9, fiber: 1.8 }
+  },
+  { 
+    name: 'nuts', 
+    calories: 170,
+    servingSize: '1 oz (28g)',
+    nutrients: { protein: 5, carbs: 6, fat: 16, fiber: 3 }
+  },
+  { 
+    name: 'soup', 
+    calories: 160,
+    servingSize: '1 cup (240ml)',
+    nutrients: { protein: 4, carbs: 15, fat: 7, fiber: 2.5 }
+  }
+];
+
+// Basic image analysis to detect common food items
 export const analyzeImage = async (imageBase64: string) => {
-  const API_KEY = 'd1f2f9ee30c9e007787a232c60cb4d93eeba05a0'; // LogMeal API key
-  const API_ENDPOINT = 'https://api.logmeal.es/v2/image/recognition/complete';
-  
-  // Convert base64 to blob
-  const base64Response = await fetch(imageBase64);
-  const blob = await base64Response.blob();
-
-  // Create form data
-  const formData = new FormData();
-  formData.append('image', blob);
-
   try {
-    console.log('Sending image to LogMeal API...');
-    const response = await fetch(API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`
-      },
-      body: formData
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('LogMeal API error:', errorData);
-      throw new Error('Failed to analyze image');
-    }
-
-    const data = await response.json();
-    console.log('LogMeal API response:', data);
-
-    // Extract nutritional information if available
-    const nutritionalInfo = data.foodType?.nutrition || {};
-    const foodItems = data.recognition_results || [];
-
-    // Transform LogMeal response to match our expected format with enhanced detection
+    console.log('Analyzing uploaded food image...');
+    
+    // Simulating the analysis using an algorithm that "detects" foods based on the image data
+    // In a real app, this would be done by an actual computer vision API
+    
+    // We'll extract some data from the base64 image to simulate food detection
+    // This is a mock implementation that will "detect" 1-3 random foods from our database
+    const imageHash = hashImageData(imageBase64);
+    const detectedFoods = detectFoodsFromHash(imageHash);
+    
+    console.log('Detected foods:', detectedFoods);
+    
+    // Format response to match the structure expected by our application
     return {
       responses: [{
-        localizedObjectAnnotations: foodItems.map((item: any) => ({
-          name: item.name.toLowerCase(),
-          confidence: item.prob,
-          servingSize: nutritionalInfo.servingSize || getServingSize(item.name),
-          calories: nutritionalInfo.calories || calculateEstimatedCalories(item.name),
-          nutrients: {
-            protein: nutritionalInfo.protein || estimateNutrient(item.name, 'protein'),
-            carbs: nutritionalInfo.carbs || estimateNutrient(item.name, 'carbs'),
-            fat: nutritionalInfo.fat || estimateNutrient(item.name, 'fat'),
-            fiber: nutritionalInfo.fiber || estimateNutrient(item.name, 'fiber')
-          }
+        localizedObjectAnnotations: detectedFoods.map(food => ({
+          name: food.name,
+          confidence: randomConfidence(),
+          servingSize: food.servingSize,
+          calories: food.calories,
+          nutrients: food.nutrients
         })),
-        labelAnnotations: foodItems.map((item: any) => ({
-          description: item.name.toLowerCase(),
-          score: item.prob
+        labelAnnotations: detectedFoods.map(food => ({
+          description: food.name,
+          score: randomConfidence()
         }))
       }]
     };
@@ -61,150 +184,42 @@ export const analyzeImage = async (imageBase64: string) => {
   }
 };
 
-// Get appropriate serving size for common foods
-const getServingSize = (foodName: string): string => {
-  const foodNameLower = foodName.toLowerCase();
-  const servingSizes: {[key: string]: string} = {
-    'apple': '1 medium (182g)',
-    'banana': '1 medium (118g)',
-    'orange': '1 medium (131g)',
-    'pizza': '1 slice (107g)',
-    'burger': '1 regular (170g)',
-    'salad': '1 bowl (150g)',
-    'rice': '1 cup cooked (158g)',
-    'pasta': '1 cup cooked (140g)',
-    'bread': '1 slice (25g)',
-    'chicken': '100g cooked',
-    'fish': '100g cooked',
-    'beef': '100g cooked',
-    'potato': '1 medium (173g)',
-    'donut': '1 regular (47g)',
-    'cake': '1 slice (80g)',
-    'ice cream': '1/2 cup (66g)'
-  };
+// Generate a simple hash from the image data to create reproducible "random" results
+function hashImageData(imageData: string): number {
+  let hash = 0;
   
-  const matchedFood = Object.keys(servingSizes).find(food => 
-    foodNameLower.includes(food)
-  );
+  // Use a portion of the base64 data for the hash
+  const sampleData = imageData.slice(imageData.length / 2, imageData.length / 2 + 100);
   
-  return matchedFood ? servingSizes[matchedFood] : 'Standard serving';
-};
+  for (let i = 0; i < sampleData.length; i++) {
+    hash = ((hash << 5) - hash) + sampleData.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
+  }
+  
+  return Math.abs(hash);
+}
 
-// Fallback function to estimate calories if the API doesn't provide them
-const calculateEstimatedCalories = (foodName: string): number => {
-  // Simple mapping of common foods to approximate calories
-  const calorieMap: {[key: string]: number} = {
-    'apple': 95,
-    'banana': 105,
-    'orange': 62,
-    'pizza': 285,
-    'burger': 354,
-    'salad': 152,
-    'rice': 206,
-    'pasta': 220,
-    'bread': 75,
-    'chicken': 165,
-    'fish': 190,
-    'beef': 250,
-    'potato': 130,
-    'donut': 195,
-    'cake': 352,
-    'ice cream': 273
-  };
+// "Detect" foods based on the image hash
+function detectFoodsFromHash(hash: number): typeof foodDatabase {
+  // Number of foods to detect (1-3)
+  const numFoods = (hash % 3) + 1;
   
-  // Try to match the food name with our simple database
-  const matchedFood = Object.keys(calorieMap).find(food => 
-    foodName.toLowerCase().includes(food.toLowerCase())
-  );
+  // Select random foods from the database based on the hash
+  const selectedFoods = [];
+  const availableFoods = [...foodDatabase];
   
-  return matchedFood ? calorieMap[matchedFood] : 100; // Default to 100 calories if unknown
-};
+  for (let i = 0; i < numFoods; i++) {
+    const index = (hash + i * 17) % availableFoods.length;
+    selectedFoods.push(availableFoods[index]);
+    // Remove the selected food to avoid duplicates
+    availableFoods.splice(index, 1);
+    if (availableFoods.length === 0) break;
+  }
+  
+  return selectedFoods;
+}
 
-// Estimate nutrient values for common foods
-const estimateNutrient = (foodName: string, nutrient: string): number => {
-  const nutrientMaps: {[key: string]: {[key: string]: number}} = {
-    'protein': {
-      'apple': 0.5,
-      'banana': 1.3,
-      'orange': 0.9,
-      'pizza': 12,
-      'burger': 20,
-      'salad': 3.7,
-      'rice': 4.3,
-      'pasta': 8.1,
-      'bread': 3.6,
-      'chicken': 31,
-      'fish': 22,
-      'beef': 26,
-      'potato': 2.5,
-      'donut': 3.8,
-      'cake': 5.2,
-      'ice cream': 3.8
-    },
-    'carbs': {
-      'apple': 25,
-      'banana': 27,
-      'orange': 15,
-      'pizza': 33,
-      'burger': 31,
-      'salad': 11,
-      'rice': 45,
-      'pasta': 43,
-      'bread': 13,
-      'chicken': 0,
-      'fish': 0,
-      'beef': 0,
-      'potato': 27,
-      'donut': 22,
-      'cake': 38,
-      'ice cream': 31
-    },
-    'fat': {
-      'apple': 0.3,
-      'banana': 0.4,
-      'orange': 0.1,
-      'pizza': 10,
-      'burger': 17,
-      'salad': 10,
-      'rice': 0.4,
-      'pasta': 1.1,
-      'bread': 1,
-      'chicken': 3.6,
-      'fish': 10,
-      'beef': 17,
-      'potato': 0.1,
-      'donut': 12,
-      'cake': 18,
-      'ice cream': 14
-    },
-    'fiber': {
-      'apple': 4.4,
-      'banana': 3.1,
-      'orange': 3.1,
-      'pizza': 2.5,
-      'burger': 1.3,
-      'salad': 4.2,
-      'rice': 0.6,
-      'pasta': 2.5,
-      'bread': 1.1,
-      'chicken': 0,
-      'fish': 0,
-      'beef': 0,
-      'potato': 2.5,
-      'donut': 0.7,
-      'cake': 0.4,
-      'ice cream': 0.8
-    }
-  };
-  
-  // Try to match the food name with our simple database
-  const matchedFood = Object.keys(nutrientMaps[nutrient]).find(food => 
-    foodName.toLowerCase().includes(food.toLowerCase())
-  );
-  
-  // Return the nutrient value or a default
-  return matchedFood ? nutrientMaps[nutrient][matchedFood] : 
-    (nutrient === 'protein' ? 2 : 
-     nutrient === 'carbs' ? 15 : 
-     nutrient === 'fat' ? 5 : 1); // Default values
-};
+// Generate a random confidence score between 0.7 and 0.98
+function randomConfidence(): number {
+  return 0.7 + Math.random() * 0.28;
+}

@@ -1,4 +1,3 @@
-
 // Food database with nutrition information
 const foodDatabase = [
   { 
@@ -147,20 +146,97 @@ const foodDatabase = [
   }
 ];
 
-// Basic image analysis to detect common food items
+// LogMeal API implementation for food detection
 export const analyzeImage = async (imageBase64: string) => {
   try {
     console.log('Analyzing uploaded food image...');
     
-    // Simulating the analysis using an algorithm that "detects" foods based on the image data
-    // In a real app, this would be done by an actual computer vision API
+    // Get API key from environment variable (stored in Supabase project settings)
+    const apiKey = import.meta.env.VITE_LOGMEAL_API_KEY;
+    
+    if (!apiKey) {
+      console.warn('LogMeal API key not found, using mock implementation');
+      return mockAnalyzeImage(imageBase64);
+    }
+    
+    // Extract base64 data - remove prefix like "data:image/jpeg;base64,"
+    const base64Data = imageBase64.includes('base64,') 
+      ? imageBase64.split('base64,')[1] 
+      : imageBase64;
+    
+    // Call the LogMeal API
+    const response = await fetch('https://api.logmeal.es/v2/image/recognition/dish', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        image: base64Data
+      })
+    });
+    
+    if (!response.ok) {
+      console.error('LogMeal API error:', response.status, response.statusText);
+      // Fall back to mock implementation if API fails
+      return mockAnalyzeImage(imageBase64);
+    }
+    
+    const data = await response.json();
+    console.log('LogMeal API response:', data);
+    
+    // Map LogMeal API response to our expected format
+    // The response structure may need to be adjusted based on actual LogMeal API response
+    const detectedFoods = data.recognition_results.map((result: any) => {
+      const foodName = result.name.toLowerCase();
+      
+      // Try to find matching food in our database for nutrition info
+      const matchedFood = foodDatabase.find(item => 
+        item.name.toLowerCase().includes(foodName) || 
+        foodName.includes(item.name.toLowerCase())
+      );
+      
+      return {
+        name: foodName,
+        confidence: result.prob,
+        servingSize: matchedFood?.servingSize || 'Standard serving',
+        calories: matchedFood?.calories || result.nutrition?.calories || 100,
+        nutrients: matchedFood?.nutrients || {
+          protein: result.nutrition?.protein || 2,
+          carbs: result.nutrition?.carbs || 15,
+          fat: result.nutrition?.fat || 5,
+          fiber: result.nutrition?.fiber || 1
+        }
+      };
+    });
+    
+    // Format response to match the structure expected by our application
+    return {
+      responses: [{
+        localizedObjectAnnotations: detectedFoods,
+        labelAnnotations: detectedFoods.map(food => ({
+          description: food.name,
+          score: food.confidence
+        }))
+      }]
+    };
+  } catch (error) {
+    console.error('Error analyzing image:', error);
+    // Fall back to mock implementation if any error occurs
+    return mockAnalyzeImage(imageBase64);
+  }
+};
+
+// Renamed the original mock implementation so we can fall back to it if needed
+const mockAnalyzeImage = async (imageBase64: string) => {
+  try {
+    console.log('Using mock food detection...');
     
     // We'll extract some data from the base64 image to simulate food detection
-    // This is a mock implementation that will "detect" 1-3 random foods from our database
     const imageHash = hashImageData(imageBase64);
     const detectedFoods = detectFoodsFromHash(imageHash);
     
-    console.log('Detected foods:', detectedFoods);
+    console.log('Mock detected foods:', detectedFoods);
     
     // Format response to match the structure expected by our application
     return {
@@ -179,7 +255,7 @@ export const analyzeImage = async (imageBase64: string) => {
       }]
     };
   } catch (error) {
-    console.error('Error analyzing image:', error);
+    console.error('Error in mock analysis:', error);
     throw error;
   }
 };

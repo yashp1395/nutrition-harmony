@@ -18,7 +18,21 @@ const DropZone = ({ onFileSelect, onStartCamera }: DropZoneProps) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      onFileSelect(selectedFile);
+      if (selectedFile.type.startsWith('image/')) {
+        onFileSelect(selectedFile);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Invalid file",
+          description: "Please select an image file.",
+        });
+      }
+    }
+  };
+
+  const handleBrowseClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
@@ -74,19 +88,22 @@ const DropZone = ({ onFileSelect, onStartCamera }: DropZoneProps) => {
             Drag and drop your food image here, or
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-3">
-            <label className="inline-block">
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-              <Button variant="outline" type="button" className="cursor-pointer">
-                <UploadIcon className="w-4 h-4 mr-2" />
-                Browse Files
-              </Button>
-            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={handleFileChange}
+            />
+            <Button 
+              variant="outline" 
+              type="button" 
+              className="cursor-pointer"
+              onClick={handleBrowseClick}
+            >
+              <UploadIcon className="w-4 h-4 mr-2" />
+              Browse Files
+            </Button>
             
             <Button 
               variant="outline" 

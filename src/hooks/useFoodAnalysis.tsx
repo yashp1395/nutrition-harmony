@@ -9,6 +9,7 @@ interface DetectedFood {
   name: string;
   confidence: number;
   nutrition?: FoodItem;
+  servingSize?: string;
   isManualEntry?: boolean;
 }
 
@@ -39,15 +40,23 @@ export const useFoodAnalysis = () => {
         setProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
 
-      // Analyze image using Google Vision API
+      // Analyze image using Vision API
       const visionResult = await analyzeImage(imageDataUrl);
       
       // Process detected objects and labels
       const detectedItems = new Set<string>();
+      const detectedDetails: {[key: string]: any} = {};
       
-      // Add objects
+      // Add objects with their details
       visionResult.responses[0].localizedObjectAnnotations?.forEach((obj: any) => {
-        detectedItems.add(obj.name.toLowerCase());
+        const name = obj.name.toLowerCase();
+        detectedItems.add(name);
+        detectedDetails[name] = {
+          confidence: obj.confidence,
+          servingSize: obj.servingSize,
+          calories: obj.calories,
+          nutrients: obj.nutrients
+        };
       });
       
       // Add labels
@@ -62,15 +71,28 @@ export const useFoodAnalysis = () => {
       // Match with database and set nutrition info
       const foodPromises = Array.from(detectedItems).map(async (item) => {
         const nutrition = await matchFoodWithDatabase(item);
+        const details = detectedDetails[item] || {};
+        
         return {
           name: item,
-          confidence: 0.8, // Example confidence score
-          nutrition,
+          confidence: details.confidence || 0.8,
+          servingSize: details.servingSize || 'Standard serving',
+          nutrition: nutrition || {
+            id: `estimated-${item}`,
+            name: item,
+            category: 'detected',
+            calories: details.calories || 100,
+            protein: details.nutrients?.protein || 2,
+            carbs: details.nutrients?.carbs || 15,
+            fat: details.nutrients?.fat || 5,
+            fiber: details.nutrients?.fiber || 1,
+            is_indian_cuisine: false
+          },
         };
       });
 
       const foods = await Promise.all(foodPromises);
-      setDetectedFoods(foods.filter(food => food.nutrition)); // Only keep foods found in database
+      setDetectedFoods(foods);
 
       clearInterval(progressInterval);
       setProgress(100);

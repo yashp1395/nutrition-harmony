@@ -1,336 +1,85 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Food database with nutrition information
-const foodDatabase = [
-  { 
-    name: 'apple', 
-    calories: 95,
-    servingSize: '1 medium (182g)',
-    nutrients: { protein: 0.5, carbs: 25, fat: 0.3, fiber: 4.4 }
-  },
-  { 
-    name: 'banana', 
-    calories: 105,
-    servingSize: '1 medium (118g)',
-    nutrients: { protein: 1.3, carbs: 27, fat: 0.4, fiber: 3.1 }
-  },
-  { 
-    name: 'orange', 
-    calories: 62,
-    servingSize: '1 medium (131g)',
-    nutrients: { protein: 0.9, carbs: 15, fat: 0.1, fiber: 3.1 }
-  },
-  { 
-    name: 'pizza', 
-    calories: 285,
-    servingSize: '1 slice (107g)',
-    nutrients: { protein: 12, carbs: 33, fat: 10, fiber: 2.5 }
-  },
-  { 
-    name: 'burger', 
-    calories: 354,
-    servingSize: '1 regular (170g)',
-    nutrients: { protein: 20, carbs: 31, fat: 17, fiber: 1.3 }
-  },
-  { 
-    name: 'salad', 
-    calories: 152,
-    servingSize: '1 bowl (150g)',
-    nutrients: { protein: 3.7, carbs: 11, fat: 10, fiber: 4.2 }
-  },
-  { 
-    name: 'rice', 
-    calories: 206,
-    servingSize: '1 cup cooked (158g)',
-    nutrients: { protein: 4.3, carbs: 45, fat: 0.4, fiber: 0.6 }
-  },
-  { 
-    name: 'pasta', 
-    calories: 220,
-    servingSize: '1 cup cooked (140g)',
-    nutrients: { protein: 8.1, carbs: 43, fat: 1.1, fiber: 2.5 }
-  },
-  { 
-    name: 'bread', 
-    calories: 75,
-    servingSize: '1 slice (25g)',
-    nutrients: { protein: 3.6, carbs: 13, fat: 1, fiber: 1.1 }
-  },
-  { 
-    name: 'chicken', 
-    calories: 165,
-    servingSize: '100g cooked',
-    nutrients: { protein: 31, carbs: 0, fat: 3.6, fiber: 0 }
-  },
-  { 
-    name: 'fish', 
-    calories: 190,
-    servingSize: '100g cooked',
-    nutrients: { protein: 22, carbs: 0, fat: 10, fiber: 0 }
-  },
-  { 
-    name: 'beef', 
-    calories: 250,
-    servingSize: '100g cooked',
-    nutrients: { protein: 26, carbs: 0, fat: 17, fiber: 0 }
-  },
-  { 
-    name: 'potato', 
-    calories: 130,
-    servingSize: '1 medium (173g)',
-    nutrients: { protein: 2.5, carbs: 27, fat: 0.1, fiber: 2.5 }
-  },
-  { 
-    name: 'donut', 
-    calories: 195,
-    servingSize: '1 regular (47g)',
-    nutrients: { protein: 3.8, carbs: 22, fat: 12, fiber: 0.7 }
-  },
-  { 
-    name: 'cake', 
-    calories: 352,
-    servingSize: '1 slice (80g)',
-    nutrients: { protein: 5.2, carbs: 38, fat: 18, fiber: 0.4 }
-  },
-  { 
-    name: 'ice cream', 
-    calories: 273,
-    servingSize: '1/2 cup (66g)',
-    nutrients: { protein: 3.8, carbs: 31, fat: 14, fiber: 0.8 }
-  },
-  { 
-    name: 'cookie', 
-    calories: 148,
-    servingSize: '1 medium (30g)',
-    nutrients: { protein: 1.8, carbs: 18, fat: 7, fiber: 0.5 }
-  },
-  { 
-    name: 'sandwich', 
-    calories: 290,
-    servingSize: '1 regular (150g)',
-    nutrients: { protein: 15, carbs: 28, fat: 12, fiber: 2.8 }
-  },
-  { 
-    name: 'eggs', 
-    calories: 72,
-    servingSize: '1 large (50g)',
-    nutrients: { protein: 6.3, carbs: 0.4, fat: 5, fiber: 0 }
-  },
-  { 
-    name: 'yogurt', 
-    calories: 150,
-    servingSize: '1 cup (245g)',
-    nutrients: { protein: 8.5, carbs: 17, fat: 8, fiber: 0 }
-  },
-  { 
-    name: 'cheese', 
-    calories: 113,
-    servingSize: '1 slice (28g)',
-    nutrients: { protein: 7, carbs: 0.4, fat: 9, fiber: 0 }
-  },
-  { 
-    name: 'chocolate', 
-    calories: 155,
-    servingSize: '1 bar (30g)',
-    nutrients: { protein: 2.1, carbs: 17, fat: 9, fiber: 1.8 }
-  },
-  { 
-    name: 'nuts', 
-    calories: 170,
-    servingSize: '1 oz (28g)',
-    nutrients: { protein: 5, carbs: 6, fat: 16, fiber: 3 }
-  },
-  { 
-    name: 'soup', 
-    calories: 160,
-    servingSize: '1 cup (240ml)',
-    nutrients: { protein: 4, carbs: 15, fat: 7, fiber: 2.5 }
-  }
-];
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
-// LogMeal API implementation for food detection
-export const analyzeImage = async (imageBase64: string) => {
+// Function to analyze the image and estimate calories
+export const analyzeImage = async (imageBase64) => {
   try {
-    console.log('Analyzing uploaded food image...');
-    
-    // Get API key from environment variable (stored in Supabase project settings)
-    const apiKey = import.meta.env.VITE_LOGMEAL_API_KEY;
-    
-    if (!apiKey) {
-      console.warn('LogMeal API key not found, using mock implementation');
-      return mockAnalyzeImage(imageBase64);
+    console.log("Analyzing uploaded food image using Gemini API...");
+
+    if (!import.meta.env.VITE_GEMINI_API_KEY) {
+      console.warn("Gemini API key not found, using mock implementation");
+      return mockAnalyzeImage();
     }
-    
-    // Extract base64 data - remove prefix like "data:image/jpeg;base64,"
-    const base64Data = imageBase64.includes('base64,') 
-      ? imageBase64.split('base64,')[1] 
-      : imageBase64;
-    
-    // Call the LogMeal API
-    const response = await fetch('https://api.logmeal.es/v2/image/recognition/dish', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        image: base64Data
-      })
+
+    // Initialize Gemini model
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
+    const prompt = `Identify the food in the image and estimate its calorie content. 
+    If multiple foods are present, list each one with its approximate calorie count per serving. 
+    Also, include the standard serving amount for each food.  
+    Format the response as:  
+    "Food: [name], Calories: [number], Serving: [amount]"`;
+
+    // Call Gemini API with image and prompt
+    const result = await model.generateContent([
+      prompt,
+      { inlineData: { data: imageBase64.split(",")[1], mimeType: "image/jpeg" } }
+    ]);
+
+    const responseText = await result.response.text();
+    console.log("Gemini API response:", responseText);
+
+    return parseGeminiResponse(responseText);
+  } catch (error) {
+    console.error("Error analyzing image:", error);
+    return mockAnalyzeImage();
+  }
+};
+
+// Function to parse Gemini's text response
+const parseGeminiResponse = (responseText) => {
+  const detectedFoods = [];
+  const foodRegex = /Food:\s*([\w\s]+),\s*Calories:\s*(\d+),\s*Serving:\s*([\w\s\d]+)/gi;
+
+  let match;
+  while ((match = foodRegex.exec(responseText)) !== null) {
+    detectedFoods.push({
+      name: match[1].trim().toLowerCase(),
+      confidence: 0.9, // Assume high confidence since Gemini identified it
+      servingSize: match[3].trim(), // Extracted serving amount
+      calories: parseInt(match[2]),
+      nutrients: { protein: 2, carbs: 15, fat: 5, fiber: 1 }
     });
-    
-    if (!response.ok) {
-      console.error('LogMeal API error:', response.status, response.statusText);
-      // Fall back to mock implementation if API fails
-      return mockAnalyzeImage(imageBase64);
-    }
-    
-    const data = await response.json();
-    console.log('LogMeal API response:', data);
-    
-    // Map LogMeal API response to our expected format
-    // Extract food items from the response
-    let detectedFoods = [];
-    
-    if (data.recognition_results && Array.isArray(data.recognition_results)) {
-      detectedFoods = data.recognition_results.map((result: any) => {
-        const foodName = result.name.toLowerCase();
-        
-        // Try to find matching food in our database for nutrition info
-        const matchedFood = foodDatabase.find(item => 
-          item.name.toLowerCase().includes(foodName) || 
-          foodName.includes(item.name.toLowerCase())
-        );
-        
-        return {
-          name: foodName,
-          confidence: result.prob,
-          servingSize: matchedFood?.servingSize || 'Standard serving',
-          calories: matchedFood?.calories || 100,
-          nutrients: matchedFood?.nutrients || {
-            protein: 2,
-            carbs: 15,
-            fat: 5,
-            fiber: 1
-          }
-        };
-      });
-    } else if (data.foodFamily && data.foodFamily.length > 0) {
-      // Alternative response format
-      detectedFoods = data.foodFamily.map((food: any) => {
-        const foodName = food.name.toLowerCase();
-        
-        // Try to find matching food in our database
-        const matchedFood = foodDatabase.find(item => 
-          item.name.toLowerCase().includes(foodName) || 
-          foodName.includes(item.name.toLowerCase())
-        );
-        
-        return {
-          name: foodName,
-          confidence: 0.85,
-          servingSize: matchedFood?.servingSize || 'Standard serving',
-          calories: matchedFood?.calories || 100,
-          nutrients: matchedFood?.nutrients || {
-            protein: 2,
-            carbs: 15,
-            fat: 5,
-            fiber: 1
-          }
-        };
-      });
-    }
-    
-    // If no foods were detected, fall back to mock implementation
-    if (detectedFoods.length === 0) {
-      console.warn('No foods detected by LogMeal API, using mock implementation');
-      return mockAnalyzeImage(imageBase64);
-    }
-    
-    // Format response to match the structure expected by our application
-    return {
-      responses: [{
-        localizedObjectAnnotations: detectedFoods,
-        labelAnnotations: detectedFoods.map(food => ({
-          description: food.name,
-          score: food.confidence
-        }))
-      }]
-    };
-  } catch (error) {
-    console.error('Error analyzing image:', error);
-    // Fall back to mock implementation if any error occurs
-    return mockAnalyzeImage(imageBase64);
   }
+
+  if (detectedFoods.length === 0) {
+    console.warn("No structured food data detected, using mock implementation");
+    return mockAnalyzeImage();
+  }
+
+  return {
+    responses: [{
+      localizedObjectAnnotations: detectedFoods,
+      labelAnnotations: detectedFoods.map(food => ({
+        description: food.name,
+        score: 0.9
+      }))
+    }]
+  };
 };
 
-// Renamed the original mock implementation so we can fall back to it if needed
-const mockAnalyzeImage = async (imageBase64: string) => {
-  try {
-    console.log('Using mock food detection...');
-    
-    // We'll extract some data from the base64 image to simulate food detection
-    const imageHash = hashImageData(imageBase64);
-    const detectedFoods = detectFoodsFromHash(imageHash);
-    
-    console.log('Mock detected foods:', detectedFoods);
-    
-    // Format response to match the structure expected by our application
-    return {
-      responses: [{
-        localizedObjectAnnotations: detectedFoods.map(food => ({
-          name: food.name,
-          confidence: randomConfidence(),
-          servingSize: food.servingSize,
-          calories: food.calories,
-          nutrients: food.nutrients
-        })),
-        labelAnnotations: detectedFoods.map(food => ({
-          description: food.name,
-          score: randomConfidence()
-        }))
-      }]
-    };
-  } catch (error) {
-    console.error('Error in mock analysis:', error);
-    throw error;
-  }
+// Fallback function for mock analysis
+const mockAnalyzeImage = async () => {
+  console.log("Using mock food detection...");
+  return {
+    responses: [{
+      localizedObjectAnnotations: [{
+        name: "mock food",
+        confidence: 0.85,
+        servingSize: "1 cup",
+        calories: 150,
+      }],
+    }],
+  };
 };
-
-// Generate a simple hash from the image data to create reproducible "random" results
-function hashImageData(imageData: string): number {
-  let hash = 0;
-  
-  // Use a portion of the base64 data for the hash
-  const sampleData = imageData.slice(imageData.length / 2, imageData.length / 2 + 100);
-  
-  for (let i = 0; i < sampleData.length; i++) {
-    hash = ((hash << 5) - hash) + sampleData.charCodeAt(i);
-    hash |= 0; // Convert to 32bit integer
-  }
-  
-  return Math.abs(hash);
-}
-
-// "Detect" foods based on the image hash
-function detectFoodsFromHash(hash: number): typeof foodDatabase {
-  // Number of foods to detect (1-3)
-  const numFoods = (hash % 3) + 1;
-  
-  // Select random foods from the database based on the hash
-  const selectedFoods = [];
-  const availableFoods = [...foodDatabase];
-  
-  for (let i = 0; i < numFoods; i++) {
-    const index = (hash + i * 17) % availableFoods.length;
-    selectedFoods.push(availableFoods[index]);
-    // Remove the selected food to avoid duplicates
-    availableFoods.splice(index, 1);
-    if (availableFoods.length === 0) break;
-  }
-  
-  return selectedFoods;
-}
-
-// Generate a random confidence score between 0.7 and 0.98
-function randomConfidence(): number {
-  return 0.7 + Math.random() * 0.28;
-}

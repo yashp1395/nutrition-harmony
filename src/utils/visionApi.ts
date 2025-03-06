@@ -4,14 +4,15 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 const API_NINJAS_KEY = "tgYEcDU8vMm/LDp2k/N77w==AZEJ0CFnkv6TiSwl";
 
-// Function to analyze the image and estimate calories
+// Main entry point - analyze the image and get food information
 export const analyzeImage = async (imageBase64) => {
   try {
     console.log("Analyzing uploaded food image...");
     
-    // Check for LogMeal API key first
+    // Try LogMeal API first (if key is available)
     if (import.meta.env.VITE_LOGMEAL_API_KEY) {
       try {
+        console.log("Attempting to use LogMeal API...");
         const logMealResult = await analyzeWithLogMeal(imageBase64);
         if (logMealResult && logMealResult.length > 0) {
           console.log("LogMeal API detection successful:", logMealResult);
@@ -28,11 +29,13 @@ export const analyzeImage = async (imageBase64) => {
       }
     }
 
-    // Try Gemini API as backup or primary if LogMeal isn't available
+    // Try Gemini API as backup (if key is available)
     if (import.meta.env.VITE_GEMINI_API_KEY) {
       try {
+        console.log("Attempting to use Gemini API...");
         const geminiResult = await analyzeWithGemini(imageBase64);
         if (geminiResult) {
+          console.log("Gemini API analysis successful");
           return geminiResult;
         }
       } catch (error) {
@@ -50,17 +53,25 @@ export const analyzeImage = async (imageBase64) => {
 
 // Enhance LogMeal results with nutrition data from API Ninjas
 async function enhanceWithNutritionData(foodItems) {
+  console.log("Enhancing with nutrition data from API Ninjas...");
   const enhancedItems = [];
   
   for (const item of foodItems) {
     try {
-      const nutritionData = await fetchNutritionData(item.name);
+      const foodName = item.name || item.display_name || '';
+      if (!foodName) {
+        console.warn("Food item missing name, skipping:", item);
+        continue;
+      }
+      
+      console.log(`Fetching nutrition for: ${foodName}`);
+      const nutritionData = await fetchNutritionData(foodName);
       enhancedItems.push({
         ...item,
         nutritionData: nutritionData
       });
     } catch (error) {
-      console.error(`Failed to get nutrition data for ${item.name}:`, error);
+      console.error(`Failed to get nutrition data for ${item.name || 'unknown food'}:`, error);
       enhancedItems.push(item); // Keep the original item without nutrition data
     }
   }
@@ -102,26 +113,68 @@ const analyzeWithLogMeal = async (imageBase64) => {
 
   const base64Data = imageBase64.split(',')[1];
   
-  const response = await fetch('https://api.logmeal.es/v2/image/recognition/dish', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ 
-      image: base64Data 
-    })
-  });
+  // First attempt with dish recognition
+  try {
+    console.log("Trying LogMeal dish recognition endpoint...");
+    const response = await fetch('https://api.logmeal.es/v2/image/recognition/dish', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        image: base64Data 
+      })
+    });
 
-  if (!response.ok) {
-    throw new Error(`LogMeal API error: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      throw new Error(`LogMeal API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log("LogMeal dish API response:", data);
+
+    if (data && data.recognition_results && data.recognition_results.length > 0) {
+      return data.recognition_results.map(item => ({
+        name: item.name.toLowerCase(),
+        display_name: item.name,
+        prob: item.prob
+      }));
+    }
+  } catch (error) {
+    console.error("LogMeal dish recognition error:", error);
   }
+  
+  // Second attempt with food detection endpoint
+  try {
+    console.log("Trying LogMeal food detection endpoint...");
+    const response = await fetch('https://api.logmeal.es/v2/image/segmentation/complete', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        image: base64Data 
+      })
+    });
 
-  const data = await response.json();
-  console.log("LogMeal API response:", data);
+    if (!response.ok) {
+      throw new Error(`LogMeal segmentation API error: ${response.status} ${response.statusText}`);
+    }
 
-  if (data && data.recognition_results) {
-    return data.recognition_results;
+    const data = await response.json();
+    console.log("LogMeal segmentation API response:", data);
+
+    if (data && data.segmentation_results && data.segmentation_results.length > 0) {
+      return data.segmentation_results.map(item => ({
+        name: item.recognition_results[0]?.name.toLowerCase() || 'unknown food',
+        display_name: item.recognition_results[0]?.name || 'Unknown Food',
+        prob: item.recognition_results[0]?.prob || 0.5
+      }));
+    }
+  } catch (error) {
+    console.error("LogMeal segmentation error:", error);
   }
   
   return [];
@@ -129,6 +182,8 @@ const analyzeWithLogMeal = async (imageBase64) => {
 
 // Format LogMeal API response to match our application structure
 const formatLogMealResponse = (recognitionResults) => {
+  console.log("Formatting LogMeal results with nutrition data:", recognitionResults);
+  
   const detectedFoods = recognitionResults.map(item => {
     // Get nutrition data from API Ninjas if available
     let calories = 0;
@@ -158,7 +213,7 @@ const formatLogMealResponse = (recognitionResults) => {
     
     return {
       name: item.name.toLowerCase(),
-      confidence: item.prob,
+      confidence: item.prob || 0.8,
       servingSize: servingSize,
       calories: calories,
       nutrients: { protein, carbs, fat, fiber }
@@ -194,22 +249,55 @@ const analyzeWithGemini = async (imageBase64) => {
   Food: Apple, Calories: 95, Serving: 1 medium
   Food: Yogurt, Calories: 150, Serving: 1 cup`;
 
-  // Call Gemini API with image and prompt
-  const result = await model.generateContent([
-    prompt,
-    { inlineData: { data: imageBase64.split(",")[1], mimeType: "image/jpeg" } }
-  ]);
+  try {
+    // Call Gemini API with image and prompt
+    const result = await model.generateContent([
+      prompt,
+      { inlineData: { data: imageBase64.split(",")[1], mimeType: "image/jpeg" } }
+    ]);
 
-  const responseText = await result.response.text();
-  console.log("Gemini API response:", responseText);
+    const responseText = await result.response.text();
+    console.log("Gemini API response:", responseText);
 
-  return parseGeminiResponse(responseText);
+    // Once we have the text response, fetch nutrition data
+    const parsedFoods = parseGeminiResponse(responseText);
+    const enhancedFoods = await Promise.all(parsedFoods.map(async (food) => {
+      try {
+        const nutritionData = await fetchNutritionData(food.name);
+        if (nutritionData && nutritionData.length > 0) {
+          const nutrition = nutritionData[0];
+          food.calories = Math.round(nutrition.calories || food.calories);
+          food.nutrients.protein = Math.round(nutrition.protein_g || food.nutrients.protein);
+          food.nutrients.carbs = Math.round(nutrition.carbohydrates_total_g || food.nutrients.carbs);
+          food.nutrients.fat = Math.round(nutrition.fat_total_g || food.nutrients.fat);
+          food.nutrients.fiber = Math.round(nutrition.fiber_g || food.nutrients.fiber);
+        }
+        return food;
+      } catch (error) {
+        console.error(`Failed to enhance food ${food.name} with nutrition data:`, error);
+        return food;
+      }
+    }));
+
+    return {
+      responses: [{
+        localizedObjectAnnotations: enhancedFoods,
+        labelAnnotations: enhancedFoods.map(food => ({
+          description: food.name,
+          score: 0.9
+        }))
+      }]
+    };
+  } catch (error) {
+    console.error("Error calling Gemini:", error);
+    return null;
+  }
 };
 
 // Function to parse Gemini's text response
 const parseGeminiResponse = (responseText) => {
   const detectedFoods = [];
-  const foodRegex = /Food:\s*([\w\s]+),\s*Calories:\s*(\d+),\s*Serving:\s*([\w\s\d]+)/gi;
+  const foodRegex = /Food:\s*([\w\s\-,']+),\s*Calories:\s*(\d+),\s*Serving:\s*([\w\s\d.]+)/gi;
 
   let match;
   while ((match = foodRegex.exec(responseText)) !== null) {
@@ -231,18 +319,31 @@ const parseGeminiResponse = (responseText) => {
 
   if (detectedFoods.length === 0) {
     console.warn("No structured food data detected from Gemini API");
-    return null;
+    
+    // Try a simpler regex as fallback
+    const simpleRegex = /([\w\s\-,']+)[\s\-,]+(\d+)\s*calories/gi;
+    while ((match = simpleRegex.exec(responseText)) !== null) {
+      const foodName = match[1].trim();
+      const calories = parseInt(match[2]);
+      
+      if (foodName && calories && !detectedFoods.some(f => f.name === foodName.toLowerCase())) {
+        const protein = Math.max(1, Math.floor(calories * 0.1));
+        const carbs = Math.max(2, Math.floor(calories * 0.3));
+        const fat = Math.max(1, Math.floor(calories * 0.1));
+        const fiber = Math.max(0, Math.floor(calories * 0.02));
+        
+        detectedFoods.push({
+          name: foodName.toLowerCase(),
+          confidence: 0.8,
+          servingSize: "1 serving",
+          calories: calories,
+          nutrients: { protein, carbs, fat, fiber }
+        });
+      }
+    }
   }
 
-  return {
-    responses: [{
-      localizedObjectAnnotations: detectedFoods,
-      labelAnnotations: detectedFoods.map(food => ({
-        description: food.name,
-        score: 0.9
-      }))
-    }]
-  };
+  return detectedFoods;
 };
 
 // Fallback function for mock analysis that returns multiple food items

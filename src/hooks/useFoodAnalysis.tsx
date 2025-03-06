@@ -51,11 +51,23 @@ export const useFoodAnalysis = () => {
     try {
       // Simulate progress
       const progressInterval = setInterval(() => {
-        setProgress((prev) => Math.min(prev + 5, 90));
+        setProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 5;
+        });
       }, 200);
 
+      console.log("Starting image analysis...");
+      
       // Analyze image using API
       const visionResult = await analyzeImage(imageDataUrl);
+      
+      if (!visionResult || !visionResult.responses || visionResult.responses.length === 0) {
+        throw new Error("Failed to get a valid response from the image analysis API");
+      }
       
       // Process detected objects and labels
       const detectedItems = new Set<string>();
@@ -64,32 +76,40 @@ export const useFoodAnalysis = () => {
       console.log("Vision API result:", visionResult);
       
       // Add objects with their details
-      visionResult.responses[0].localizedObjectAnnotations?.forEach((obj: any) => {
-        const name = obj.name.toLowerCase();
-        detectedItems.add(name);
-        detectedDetails[name] = {
-          confidence: obj.confidence,
-          servingSize: obj.servingSize,
-          calories: obj.calories,
-          nutrients: obj.nutrients
-        };
-      });
+      if (visionResult.responses[0].localizedObjectAnnotations) {
+        visionResult.responses[0].localizedObjectAnnotations.forEach((obj: any) => {
+          const name = obj.name.toLowerCase();
+          detectedItems.add(name);
+          detectedDetails[name] = {
+            confidence: obj.confidence,
+            servingSize: obj.servingSize,
+            calories: obj.calories,
+            nutrients: obj.nutrients
+          };
+        });
+      }
       
-      // Add any additional labels if they're food related
-      visionResult.responses[0].labelAnnotations?.forEach((label: any) => {
-        const description = label.description.toLowerCase();
-        if (!detectedItems.has(description) && 
-            (description.includes('food') || 
-             description.includes('dish') ||
-             description.includes('meal') ||
-             description.includes('fruit') ||
-             description.includes('vegetable'))) {
-          detectedItems.add(description);
-        }
-      });
+      // Add any additional labels if they're food related (fallback detection)
+      if (visionResult.responses[0].labelAnnotations) {
+        visionResult.responses[0].labelAnnotations.forEach((label: any) => {
+          const description = label.description.toLowerCase();
+          if (!detectedItems.has(description) && 
+              (description.includes('food') || 
+               description.includes('dish') ||
+               description.includes('meal') ||
+               description.includes('fruit') ||
+               description.includes('vegetable'))) {
+            detectedItems.add(description);
+          }
+        });
+      }
 
       console.log("Detected food items:", Array.from(detectedItems));
       console.log("Detected details:", detectedDetails);
+
+      if (detectedItems.size === 0) {
+        throw new Error("No food items detected in the image");
+      }
 
       // Match with database and set nutrition info
       const foodPromises = Array.from(detectedItems).map(async (item) => {
@@ -123,7 +143,7 @@ export const useFoodAnalysis = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to analyze image. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to analyze image. Please try again.",
       });
     } finally {
       setAnalyzing(false);

@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Upload as UploadIcon, Loader2, Search } from "lucide-react";
+import { Upload as UploadIcon, Loader2, Search, Camera } from "lucide-react";
 
 interface ImagePreviewProps {
   preview: string;
@@ -12,18 +12,18 @@ interface ImagePreviewProps {
 const ImagePreview = ({ preview, analyzing, onRemove, onAnalyze }: ImagePreviewProps) => {
   return (
     <div className="space-y-4">
-      <div className="relative rounded-lg overflow-hidden">
+      <div className="relative rounded-lg overflow-hidden border border-gray-200">
         <img
           src={preview}
           alt="Preview"
           className={`w-full object-cover max-h-[400px] ${analyzing ? 'opacity-70' : ''}`}
         />
         {analyzing && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
             <div className="bg-white/90 rounded-lg p-4 shadow-lg flex flex-col items-center">
               <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
-              <p className="text-sm font-medium">Analyzing food items...</p>
-              <p className="text-xs text-gray-500 mt-1">Getting nutrition data...</p>
+              <p className="text-sm font-medium">Analyzing image...</p>
+              <p className="text-xs text-gray-500 mt-1">Identifying food items & nutrition data</p>
             </div>
           </div>
         )}
@@ -40,7 +40,7 @@ const ImagePreview = ({ preview, analyzing, onRemove, onAnalyze }: ImagePreviewP
         <Button 
           onClick={onAnalyze} 
           disabled={analyzing}
-          className="flex-1"
+          className="flex-1 bg-green-600 hover:bg-green-700"
         >
           {analyzing ? (
             <>

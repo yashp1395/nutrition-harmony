@@ -29,6 +29,20 @@ export const useFoodAnalysis = () => {
     }
   };
 
+  const createEstimatedNutrition = (foodName: string, calories: number, nutrients: any) => {
+    return {
+      id: `estimated-${foodName}`,
+      name: foodName,
+      category: 'detected',
+      calories: calories || 100,
+      protein: nutrients?.protein || 2,
+      carbs: nutrients?.carbs || 15,
+      fat: nutrients?.fat || 5,
+      fiber: nutrients?.fiber || 1,
+      is_indian_cuisine: false
+    };
+  };
+
   const analyzeFood = async (imageDataUrl: string) => {
     setAnalyzing(true);
     setProgress(0);
@@ -37,15 +51,17 @@ export const useFoodAnalysis = () => {
     try {
       // Simulate progress
       const progressInterval = setInterval(() => {
-        setProgress((prev) => Math.min(prev + 10, 90));
+        setProgress((prev) => Math.min(prev + 5, 90));
       }, 200);
 
-      // Analyze image using Vision API
+      // Analyze image using API
       const visionResult = await analyzeImage(imageDataUrl);
       
       // Process detected objects and labels
       const detectedItems = new Set<string>();
       const detectedDetails: {[key: string]: any} = {};
+      
+      console.log("Vision API result:", visionResult);
       
       // Add objects with their details
       visionResult.responses[0].localizedObjectAnnotations?.forEach((obj: any) => {
@@ -59,35 +75,36 @@ export const useFoodAnalysis = () => {
         };
       });
       
-      // Add labels
+      // Add any additional labels if they're food related
       visionResult.responses[0].labelAnnotations?.forEach((label: any) => {
-        if (label.description.toLowerCase().includes('food') || 
-            label.description.toLowerCase().includes('dish') ||
-            label.description.toLowerCase().includes('meal')) {
-          detectedItems.add(label.description.toLowerCase());
+        const description = label.description.toLowerCase();
+        if (!detectedItems.has(description) && 
+            (description.includes('food') || 
+             description.includes('dish') ||
+             description.includes('meal') ||
+             description.includes('fruit') ||
+             description.includes('vegetable'))) {
+          detectedItems.add(description);
         }
       });
 
+      console.log("Detected food items:", Array.from(detectedItems));
+      console.log("Detected details:", detectedDetails);
+
       // Match with database and set nutrition info
       const foodPromises = Array.from(detectedItems).map(async (item) => {
-        const nutrition = await matchFoodWithDatabase(item);
+        const dbNutrition = await matchFoodWithDatabase(item);
         const details = detectedDetails[item] || {};
         
         return {
           name: item,
           confidence: details.confidence || 0.8,
           servingSize: details.servingSize || 'Standard serving',
-          nutrition: nutrition || {
-            id: `estimated-${item}`,
-            name: item,
-            category: 'detected',
-            calories: details.calories || 100,
-            protein: details.nutrients?.protein || 2,
-            carbs: details.nutrients?.carbs || 15,
-            fat: details.nutrients?.fat || 5,
-            fiber: details.nutrients?.fiber || 1,
-            is_indian_cuisine: false
-          },
+          nutrition: dbNutrition || createEstimatedNutrition(
+            item, 
+            details.calories, 
+            details.nutrients
+          ),
         };
       });
 
@@ -99,7 +116,7 @@ export const useFoodAnalysis = () => {
       
       toast({
         title: "Analysis Complete",
-        description: `Detected ${foods.length} food items`,
+        description: `Detected ${foods.length} food item${foods.length !== 1 ? 's' : ''}`,
       });
     } catch (error) {
       console.error('Error analyzing image:', error);

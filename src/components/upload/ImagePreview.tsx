@@ -12,20 +12,35 @@ interface ImagePreviewProps {
 const ImagePreview = ({ preview, analyzing, onRemove, onAnalyze }: ImagePreviewProps) => {
   return (
     <div className="space-y-4">
-      <img
-        src={preview}
-        alt="Preview"
-        className="w-full rounded-lg object-cover max-h-[400px]"
-      />
+      <div className="relative rounded-lg overflow-hidden">
+        <img
+          src={preview}
+          alt="Preview"
+          className={`w-full object-cover max-h-[400px] ${analyzing ? 'opacity-70' : ''}`}
+        />
+        {analyzing && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <div className="bg-white/90 rounded-lg p-4 shadow-lg flex flex-col items-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+              <p className="text-sm font-medium">Analyzing food items...</p>
+            </div>
+          </div>
+        )}
+      </div>
       <div className="flex gap-4">
         <Button
           variant="outline"
           onClick={onRemove}
           disabled={analyzing}
+          className="flex-1"
         >
           Remove
         </Button>
-        <Button onClick={onAnalyze} disabled={analyzing}>
+        <Button 
+          onClick={onAnalyze} 
+          disabled={analyzing}
+          className="flex-1"
+        >
           {analyzing ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

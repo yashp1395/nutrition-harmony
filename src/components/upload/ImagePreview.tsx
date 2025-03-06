@@ -23,7 +23,7 @@ const ImagePreview = ({ preview, analyzing, onRemove, onAnalyze }: ImagePreviewP
             <div className="bg-white/90 rounded-lg p-4 shadow-lg flex flex-col items-center">
               <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
               <p className="text-sm font-medium">Analyzing image...</p>
-              <p className="text-xs text-gray-500 mt-1">Using LogMeal & API Ninjas for nutrition data</p>
+              <p className="text-xs text-gray-500 mt-1">Using Gemini & API Ninjas for nutrition data</p>
             </div>
           </div>
         )}

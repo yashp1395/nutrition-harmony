@@ -1,7 +1,7 @@
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+// Initialize with the new Gemini API key
+const genAI = new GoogleGenerativeAI("AIzaSyA9gMflnfM-uteYZiFIoTYefjPYh5VDQG0");
 const API_NINJAS_KEY = "tgYEcDU8vMm/LDp2k/N77w==AZEJ0CFnkv6TiSwl";
 
 // Main entry point - analyze the image and get food information
@@ -9,7 +9,7 @@ export const analyzeImage = async (imageBase64) => {
   try {
     console.log("Analyzing uploaded food image...");
     
-    // Try LogMeal API first
+    // Try LogMeal API first if key exists
     if (import.meta.env.VITE_LOGMEAL_API_KEY) {
       try {
         console.log("Using LogMeal API for food detection...");
@@ -28,25 +28,21 @@ export const analyzeImage = async (imageBase64) => {
         console.error("LogMeal API error:", error);
         console.log("Trying Gemini API");
         
-        // Try Gemini API as backup
-        if (import.meta.env.VITE_GEMINI_API_KEY) {
-          try {
-            console.log("Using Gemini API...");
-            const geminiResult = await analyzeWithGemini(imageBase64);
-            if (geminiResult) {
-              console.log("Gemini API analysis successful");
-              return geminiResult;
-            }
-          } catch (error) {
-            console.error("Gemini API error:", error);
-            throw new Error("Both LogMeal and Gemini APIs failed to detect foods");
+        // Use Gemini API as backup
+        try {
+          console.log("Using Gemini API...");
+          const geminiResult = await analyzeWithGemini(imageBase64);
+          if (geminiResult) {
+            console.log("Gemini API analysis successful");
+            return geminiResult;
           }
-        } else {
-          throw new Error("LogMeal API failed and Gemini API key is not configured");
+        } catch (error) {
+          console.error("Gemini API error:", error);
+          throw new Error("Both LogMeal and Gemini APIs failed to detect foods");
         }
       }
-    } else if (import.meta.env.VITE_GEMINI_API_KEY) {
-      // If LogMeal API key is not available but Gemini is
+    } else {
+      // If LogMeal API key is not available, use Gemini directly
       try {
         console.log("Using Gemini API as primary detection method...");
         const geminiResult = await analyzeWithGemini(imageBase64);
@@ -60,8 +56,6 @@ export const analyzeImage = async (imageBase64) => {
         console.error("Gemini API error:", error);
         throw new Error("Gemini API failed to analyze the image");
       }
-    } else {
-      throw new Error("No API keys configured for food detection. Please add LogMeal or Gemini API keys.");
     }
   } catch (error) {
     console.error("Error analyzing image:", error);
@@ -257,23 +251,27 @@ const formatLogMealResponse = (recognitionResults) => {
   };
 };
 
-// Function to analyze with Gemini API
+// Function to analyze with Gemini API - prioritizing this method now
 const analyzeWithGemini = async (imageBase64) => {
-  if (!import.meta.env.VITE_GEMINI_API_KEY) {
-    throw new Error("Gemini API key not configured");
-  }
-
   // Initialize Gemini model
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-  const prompt = `Identify all the foods in the image and estimate calorie content for each.
-  If multiple foods are present, list each one with its approximate calorie count.
-  Also include the standard serving amount for each food.
-  Format the response as multiple lines of:
-  "Food: [name], Calories: [number], Serving: [amount]"
+  const prompt = `Identify all the foods visible in this image. Be very detailed and comprehensive in your analysis.
+  Each food should be identified separately, even if they're part of the same dish.
+  For each food item detected, provide:
+  1. The exact name of the food
+  2. An estimate of calories per serving
+  3. The standard serving size
+
+  Format your response exactly like this:
+  Food: [food name], Calories: [number], Serving: [serving size]
+  
   For example:
-  Food: Apple, Calories: 95, Serving: 1 medium
-  Food: Yogurt, Calories: 150, Serving: 1 cup`;
+  Food: Apple, Calories: 95, Serving: 1 medium (182g)
+  Food: White Rice, Calories: 205, Serving: 1 cup cooked (158g)
+  Food: Grilled Chicken Breast, Calories: 165, Serving: 3 oz (85g)
+  
+  Be precise and detailed about each food item. If there are multiple food items, list each one separately.`;
 
   try {
     // Call Gemini API with image and prompt
@@ -298,10 +296,10 @@ const analyzeWithGemini = async (imageBase64) => {
         if (nutritionData && nutritionData.length > 0) {
           const nutrition = nutritionData[0];
           food.calories = Math.round(nutrition.calories || food.calories);
-          food.nutrients.protein = Math.round(nutrition.protein_g || food.nutrients.protein);
-          food.nutrients.carbs = Math.round(nutrition.carbohydrates_total_g || food.nutrients.carbs);
-          food.nutrients.fat = Math.round(nutrition.fat_total_g || food.nutrients.fat);
-          food.nutrients.fiber = Math.round(nutrition.fiber_g || food.nutrients.fiber);
+          food.nutrients.protein = Math.round(nutrition.protein_g || 0);
+          food.nutrients.carbs = Math.round(nutrition.carbohydrates_total_g || 0);
+          food.nutrients.fat = Math.round(nutrition.fat_total_g || 0);
+          food.nutrients.fiber = Math.round(nutrition.fiber_g || 0);
         }
         return food;
       } catch (error) {
@@ -325,10 +323,11 @@ const analyzeWithGemini = async (imageBase64) => {
   }
 };
 
-// Function to parse Gemini's text response
+// Function to parse Gemini's text response - improved for better extraction
 const parseGeminiResponse = (responseText) => {
   const detectedFoods = [];
-  const foodRegex = /Food:\s*([\w\s\-,']+),\s*Calories:\s*(\d+),\s*Serving:\s*([\w\s\d.]+)/gi;
+  // Improved regex to better match Gemini's output format
+  const foodRegex = /Food:\s*([\w\s\-,']+),\s*Calories:\s*(\d+),\s*Serving:\s*([\w\s\d.()]+)/gi;
 
   let match;
   while ((match = foodRegex.exec(responseText)) !== null) {
@@ -347,10 +346,10 @@ const parseGeminiResponse = (responseText) => {
   }
 
   if (detectedFoods.length === 0) {
-    console.warn("No structured food data detected from Gemini API");
+    console.warn("No structured food data detected from Gemini API, trying fallback parsing");
     
     // Try a simpler regex as fallback
-    const simpleRegex = /([\w\s\-,']+)[\s\-,]+(\d+)\s*calories/gi;
+    const simpleRegex = /([\w\s\-,']+)[\s\-:]+(\d+)\s*calories/gi;
     while ((match = simpleRegex.exec(responseText)) !== null) {
       const foodName = match[1].trim();
       const calories = parseInt(match[2]);
@@ -368,6 +367,29 @@ const parseGeminiResponse = (responseText) => {
             fiber: 0 
           }
         });
+      }
+    }
+    
+    // If still no foods detected, try extracting just the food names
+    if (detectedFoods.length === 0) {
+      const foodNameRegex = /\b(apple|banana|orange|chicken|beef|pork|fish|rice|potato|bread|pasta|pizza|burger|salad|sandwich|soup|steak|fries|vegetables|fruits|cake|cookie|ice cream|chocolate|coffee|tea|water|juice|soda|milk|cheese|yogurt|egg|bacon|sausage|cereal|pancake|waffle|donut|muffin|bagel|toast|taco|burrito|quesadilla|enchilada|noodles|curry|dal|roti|paratha|naan|dosa|idli|samosa|pakora|biryani|pulao|chips|nuts|popcorn|candy|pie|brownie|pudding)\b/gi;
+      
+      while ((match = foodNameRegex.exec(responseText)) !== null) {
+        const foodName = match[1].trim().toLowerCase();
+        if (!detectedFoods.some(f => f.name === foodName)) {
+          detectedFoods.push({
+            name: foodName,
+            confidence: 0.7,
+            servingSize: "1 serving",
+            calories: 100, // Default calories
+            nutrients: { 
+              protein: 0, 
+              carbs: 0, 
+              fat: 0, 
+              fiber: 0 
+            }
+          });
+        }
       }
     }
   }

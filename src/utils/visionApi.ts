@@ -2,6 +2,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+const API_NINJAS_KEY = "tgYEcDU8vMm/LDp2k/N77w==AZEJ0CFnkv6TiSwl";
 
 // Function to analyze the image and estimate calories
 export const analyzeImage = async (imageBase64) => {
@@ -14,7 +15,10 @@ export const analyzeImage = async (imageBase64) => {
         const logMealResult = await analyzeWithLogMeal(imageBase64);
         if (logMealResult && logMealResult.length > 0) {
           console.log("LogMeal API detection successful:", logMealResult);
-          return formatLogMealResponse(logMealResult);
+          
+          // Get nutrition data from API Ninjas for each detected food
+          const enhancedResults = await enhanceWithNutritionData(logMealResult);
+          return formatLogMealResponse(enhancedResults);
         } else {
           console.log("LogMeal API returned no results, falling back to Gemini");
         }
@@ -43,6 +47,51 @@ export const analyzeImage = async (imageBase64) => {
     return mockAnalyzeImage();
   }
 };
+
+// Enhance LogMeal results with nutrition data from API Ninjas
+async function enhanceWithNutritionData(foodItems) {
+  const enhancedItems = [];
+  
+  for (const item of foodItems) {
+    try {
+      const nutritionData = await fetchNutritionData(item.name);
+      enhancedItems.push({
+        ...item,
+        nutritionData: nutritionData
+      });
+    } catch (error) {
+      console.error(`Failed to get nutrition data for ${item.name}:`, error);
+      enhancedItems.push(item); // Keep the original item without nutrition data
+    }
+  }
+  
+  return enhancedItems;
+}
+
+// Fetch nutrition data from API Ninjas
+async function fetchNutritionData(foodName) {
+  try {
+    console.log(`Fetching nutrition data for: ${foodName}`);
+    const response = await fetch(`https://api.api-ninjas.com/v1/nutrition?query=${encodeURIComponent(foodName)}`, {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': API_NINJAS_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API Ninjas error: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log("API Ninjas nutrition data:", data);
+    return data;
+  } catch (error) {
+    console.error("Error fetching nutrition data:", error);
+    return null;
+  }
+}
 
 // Function to analyze with LogMeal API
 const analyzeWithLogMeal = async (imageBase64) => {
@@ -81,19 +130,37 @@ const analyzeWithLogMeal = async (imageBase64) => {
 // Format LogMeal API response to match our application structure
 const formatLogMealResponse = (recognitionResults) => {
   const detectedFoods = recognitionResults.map(item => {
-    // Calculate estimated calories and nutrients based on the food type
-    // These would ideally come from the API but we're estimating them for now
-    const baseCalories = Math.floor(100 + Math.random() * 300);
-    const protein = Math.floor(2 + Math.random() * 20);
-    const carbs = Math.floor(5 + Math.random() * 30);
-    const fat = Math.floor(2 + Math.random() * 15);
-    const fiber = Math.floor(1 + Math.random() * 5);
+    // Get nutrition data from API Ninjas if available
+    let calories = 0;
+    let protein = 0;
+    let carbs = 0;
+    let fat = 0;
+    let fiber = 0;
+    let servingSize = "1 serving";
+    
+    // If we have nutrition data from API Ninjas, use it
+    if (item.nutritionData && item.nutritionData.length > 0) {
+      const nutrition = item.nutritionData[0];
+      calories = Math.round(nutrition.calories || 0);
+      protein = Math.round(nutrition.protein_g || 0);
+      carbs = Math.round(nutrition.carbohydrates_total_g || 0);
+      fat = Math.round(nutrition.fat_total_g || 0);
+      fiber = Math.round(nutrition.fiber_g || 0);
+      servingSize = `${nutrition.serving_size_g}g`;
+    } else {
+      // Fallback to estimates if no data from API Ninjas
+      calories = Math.floor(100 + Math.random() * 300);
+      protein = Math.floor(2 + Math.random() * 20);
+      carbs = Math.floor(5 + Math.random() * 30);
+      fat = Math.floor(2 + Math.random() * 15);
+      fiber = Math.floor(1 + Math.random() * 5);
+    }
     
     return {
       name: item.name.toLowerCase(),
       confidence: item.prob,
-      servingSize: "1 serving",
-      calories: baseCalories,
+      servingSize: servingSize,
+      calories: calories,
       nutrients: { protein, carbs, fat, fiber }
     };
   });

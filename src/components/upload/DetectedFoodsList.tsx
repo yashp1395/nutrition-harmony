@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import type { FoodItem } from "../../types/database.types";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface DetectedFood {
   name: string;
@@ -28,11 +29,11 @@ const DetectedFoodsList = ({ detectedFoods, onRemoveFood }: DetectedFoodsListPro
             <CardContent className="p-0">
               <div className="flex items-center justify-between p-3">
                 <div className="flex-1">
-                  <div className="flex items-baseline justify-between">
+                  <div className="flex items-center justify-between mb-1">
                     <p className="font-medium text-lg capitalize">{food.name}</p>
-                    {food.servingSize && (
-                      <span className="text-xs text-gray-500">{food.servingSize}</span>
-                    )}
+                    <Badge variant="outline" className="ml-2">
+                      {food.servingSize}
+                    </Badge>
                   </div>
                   <div className="grid grid-cols-4 gap-2 mt-2 text-sm">
                     <div>

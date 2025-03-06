@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Upload as UploadIcon, Loader2 } from "lucide-react";
+import { Upload as UploadIcon, Loader2, Search } from "lucide-react";
 
 interface ImagePreviewProps {
   preview: string;
@@ -23,6 +23,7 @@ const ImagePreview = ({ preview, analyzing, onRemove, onAnalyze }: ImagePreviewP
             <div className="bg-white/90 rounded-lg p-4 shadow-lg flex flex-col items-center">
               <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
               <p className="text-sm font-medium">Analyzing food items...</p>
+              <p className="text-xs text-gray-500 mt-1">Getting nutrition data...</p>
             </div>
           </div>
         )}
@@ -48,8 +49,8 @@ const ImagePreview = ({ preview, analyzing, onRemove, onAnalyze }: ImagePreviewP
             </>
           ) : (
             <>
-              <UploadIcon className="w-4 h-4 mr-2" />
-              Analyze Image
+              <Search className="w-4 h-4 mr-2" />
+              Identify Foods
             </>
           )}
         </Button>

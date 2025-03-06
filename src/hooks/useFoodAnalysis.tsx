@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { analyzeImage } from "../utils/visionApi";
 import { getFoodItems } from "../lib/supabase";
@@ -31,7 +30,7 @@ export const useFoodAnalysis = () => {
 
   const createEstimatedNutrition = (foodName: string, calories: number, nutrients: any) => {
     return {
-      id: `estimated-${foodName}`,
+      id: `api-${foodName}`,
       name: foodName,
       category: 'detected',
       calories: calories || 100,
@@ -49,7 +48,7 @@ export const useFoodAnalysis = () => {
     setDetectedFoods([]);
 
     try {
-      // Simulate progress
+      // Simulate progress for UX
       const progressInterval = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 90) {
@@ -60,7 +59,7 @@ export const useFoodAnalysis = () => {
         });
       }, 200);
 
-      console.log("Starting image analysis...");
+      console.log("Starting image analysis with LogMeal and API Ninjas...");
       
       // Analyze image using API
       const visionResult = await analyzeImage(imageDataUrl);
@@ -69,62 +68,55 @@ export const useFoodAnalysis = () => {
         throw new Error("Failed to get a valid response from the image analysis API");
       }
       
-      // Process detected objects and labels
-      const detectedItems = new Set<string>();
-      const detectedDetails: {[key: string]: any} = {};
+      // Extract detected objects
+      const detectedItems: {[key: string]: any} = {};
       
-      console.log("Vision API result:", visionResult);
+      console.log("API result:", visionResult);
       
       // Add objects with their details
       if (visionResult.responses[0].localizedObjectAnnotations) {
         visionResult.responses[0].localizedObjectAnnotations.forEach((obj: any) => {
-          const name = obj.name.toLowerCase();
-          detectedItems.add(name);
-          detectedDetails[name] = {
-            confidence: obj.confidence,
-            servingSize: obj.servingSize,
+          detectedItems[obj.name] = {
+            name: obj.name,
+            confidence: obj.confidence || 0.8,
+            servingSize: obj.servingSize || 'Standard serving',
             calories: obj.calories,
             nutrients: obj.nutrients
           };
         });
       }
-      
-      // Add any additional labels if they're food related (fallback detection)
-      if (visionResult.responses[0].labelAnnotations) {
-        visionResult.responses[0].labelAnnotations.forEach((label: any) => {
-          const description = label.description.toLowerCase();
-          if (!detectedItems.has(description) && 
-              (description.includes('food') || 
-               description.includes('dish') ||
-               description.includes('meal') ||
-               description.includes('fruit') ||
-               description.includes('vegetable'))) {
-            detectedItems.add(description);
-          }
-        });
-      }
 
-      console.log("Detected food items:", Array.from(detectedItems));
-      console.log("Detected details:", detectedDetails);
-
-      if (detectedItems.size === 0) {
+      if (Object.keys(detectedItems).length === 0) {
         throw new Error("No food items detected in the image");
       }
 
-      // Match with database and set nutrition info
-      const foodPromises = Array.from(detectedItems).map(async (item) => {
-        const dbNutrition = await matchFoodWithDatabase(item);
-        const details = detectedDetails[item] || {};
+      console.log("Detected food items:", Object.keys(detectedItems));
+
+      // Match with database or use API nutrition data
+      const foodPromises = Object.values(detectedItems).map(async (item: any) => {
+        // Try to match with our database first
+        const dbNutrition = await matchFoodWithDatabase(item.name);
         
+        // If found in database, use that data
+        if (dbNutrition) {
+          return {
+            name: item.name,
+            confidence: item.confidence,
+            servingSize: item.servingSize,
+            nutrition: dbNutrition
+          };
+        }
+        
+        // Otherwise use the nutrition data from API Ninjas
         return {
-          name: item,
-          confidence: details.confidence || 0.8,
-          servingSize: details.servingSize || 'Standard serving',
-          nutrition: dbNutrition || createEstimatedNutrition(
-            item, 
-            details.calories, 
-            details.nutrients
-          ),
+          name: item.name,
+          confidence: item.confidence,
+          servingSize: item.servingSize,
+          nutrition: createEstimatedNutrition(
+            item.name, 
+            item.calories, 
+            item.nutrients
+          )
         };
       });
 

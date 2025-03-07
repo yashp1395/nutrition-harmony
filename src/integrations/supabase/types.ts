@@ -54,6 +54,84 @@ export type Database = {
         }
         Relationships: []
       }
+      meals: {
+        Row: {
+          calories: number | null
+          carbs: number | null
+          created_at: string | null
+          date: string | null
+          fat: number | null
+          food_items: Json | null
+          id: string
+          image_url: string | null
+          name: string
+          protein: number | null
+          time: string
+          user_id: string
+        }
+        Insert: {
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string | null
+          date?: string | null
+          fat?: number | null
+          food_items?: Json | null
+          id?: string
+          image_url?: string | null
+          name: string
+          protein?: number | null
+          time: string
+          user_id: string
+        }
+        Update: {
+          calories?: number | null
+          carbs?: number | null
+          created_at?: string | null
+          date?: string | null
+          fat?: number | null
+          food_items?: Json | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          protein?: number | null
+          time?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nutrition_goals: {
+        Row: {
+          created_at: string | null
+          current: number | null
+          id: string
+          name: string
+          target: number
+          unit: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current?: number | null
+          id?: string
+          name: string
+          target: number
+          unit: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current?: number | null
+          id?: string
+          name?: string
+          target?: number
+          unit?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

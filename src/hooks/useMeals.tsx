@@ -81,6 +81,7 @@ export const useMeals = (updateGoals?: (goals: NutritionGoal[]) => void, goals?:
       
       if (!session) {
         toast.error('You must be logged in to save meals');
+        navigate('/auth');
         return null;
       }
       

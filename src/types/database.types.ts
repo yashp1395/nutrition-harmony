@@ -1,3 +1,4 @@
+
 export interface FoodItem {
   id: string;
   name: string;
@@ -19,4 +20,12 @@ export interface UserMeal {
   date: string;
   portion_size: number;
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+}
+
+// Type for adding a food item to a meal
+export interface AddToMealRequest {
+  foodItem: FoodItem;
+  mealType: string;
+  date?: string;
+  quantity?: number;
 }

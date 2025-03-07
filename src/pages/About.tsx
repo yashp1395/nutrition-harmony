@@ -1,10 +1,8 @@
 import Navbar from "../components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Heart, Leaf, Zap, Shield } from "lucide-react";
-
 const About = () => {
-  return (
-    <div className="min-h-screen bg-gray-50">
+  return <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
@@ -91,14 +89,10 @@ const About = () => {
               Join thousands of users who are making healthier food choices with
               Calorie Tracker.
             </p>
-            <Button size="lg" className="font-semibold">
-              Get Started Now
-            </Button>
+            <Button size="lg" className="font-Serif mx-[12px] my-0 px-[40px] py-[20px] text-xl text-slate-50 rounded">JOIN COMMUNITY</Button>
           </section>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default About;

@@ -1,38 +1,52 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { useProfile } from "../hooks/useProfile";
+import { useMeals } from "../hooks/useMeals";
+import EditGoalsDialog from "../components/profile/EditGoalsDialog";
+import MealItem from "../components/profile/MealItem";
+import AddMealDialog from "../components/profile/AddMealDialog";
+import UploadMealWidget from "../components/profile/UploadMealWidget";
 import {
   Settings,
   Bell,
   Lock,
   HelpCircle,
-  ChevronRight,
-  Utensils,
   Target,
-  Activity,
+  Utensils,
+  Upload,
+  BarChart3,
+  LogOut
 } from "lucide-react";
 
-interface NutritionGoal {
-  name: string;
-  current: number;
-  target: number;
-  unit: string;
-}
-
 const Profile = () => {
-  const [goals] = useState<NutritionGoal[]>([
-    { name: "Calories", current: 1200, target: 2000, unit: "kcal" },
-    { name: "Protein", current: 45, target: 60, unit: "g" },
-    { name: "Carbs", current: 130, target: 200, unit: "g" },
-    { name: "Fat", current: 40, target: 65, unit: "g" },
-  ]);
+  const { user, loading: userLoading, goals, updateGoals, logout } = useProfile();
+  const { meals, loading: mealsLoading, saveMeal, deleteMeal, updateMeal } = useMeals(updateGoals, goals);
+  const [chartData, setChartData] = useState<any[]>([]);
 
-  const recentMeals = [
-    { name: "Breakfast", calories: 450, time: "8:30 AM" },
-    { name: "Lunch", calories: 550, time: "12:45 PM" },
-    { name: "Snack", calories: 200, time: "3:30 PM" },
-  ];
+  useEffect(() => {
+    // Prepare data for the pie chart
+    if (goals.length > 0) {
+      const data = [
+        { name: 'Protein', value: goals.find(g => g.name === 'Protein')?.current || 0, color: '#4f46e5' },
+        { name: 'Carbs', value: goals.find(g => g.name === 'Carbs')?.current || 0, color: '#10b981' },
+        { name: 'Fat', value: goals.find(g => g.name === 'Fat')?.current || 0, color: '#f59e0b' }
+      ];
+      setChartData(data);
+    }
+  }, [goals]);
+
+  const getInitials = (name: string | null) => {
+    if (!name) return 'U';
+    return name.split(' ')
+      .map(part => part.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,12 +59,20 @@ const Profile = () => {
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="text-center mb-6">
                   <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl font-semibold text-primary">
-                      JD
-                    </span>
+                    {user?.avatar_url ? (
+                      <img 
+                        src={user.avatar_url} 
+                        alt={user.full_name || 'User'} 
+                        className="w-24 h-24 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl font-semibold text-primary">
+                        {getInitials(user?.full_name)}
+                      </span>
+                    )}
                   </div>
-                  <h2 className="text-xl font-semibold">John Doe</h2>
-                  <p className="text-gray-500">john.doe@example.com</p>
+                  <h2 className="text-xl font-semibold">{user?.full_name || 'User'}</h2>
+                  <p className="text-gray-500">{user?.email || 'user@example.com'}</p>
                 </div>
 
                 <div className="space-y-2">
@@ -86,18 +108,32 @@ const Profile = () => {
                     <HelpCircle className="w-4 h-4 mr-2" />
                     Help & Support
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    size="sm"
+                    onClick={logout}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Log Out
+                  </Button>
                 </div>
               </div>
             </div>
 
             {/* Main Content */}
             <div className="md:col-span-2 space-y-8">
+              {/* Upload Meal Widget */}
+              <UploadMealWidget />
+            
               {/* Daily Goals */}
-              <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="bg-white p-6 rounded-lg shadow-md relative">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold">Daily Goals</h2>
                   <Target className="w-5 h-5 text-gray-400" />
                 </div>
+
+                <EditGoalsDialog goals={goals} onSave={updateGoals} />
 
                 <div className="space-y-6">
                   {goals.map((goal) => (
@@ -109,11 +145,38 @@ const Profile = () => {
                         </span>
                       </div>
                       <Progress
-                        value={(goal.current / goal.target) * 100}
+                        value={Math.min((goal.current / goal.target) * 100, 100)}
                         className="h-2"
                       />
                     </div>
                   ))}
+                </div>
+
+                {/* Nutrition Distribution Chart */}
+                <div className="mt-8">
+                  <h3 className="text-md font-medium mb-4">Nutrition Distribution</h3>
+                  <div className="h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={70}
+                          fill="#8884d8"
+                          paddingAngle={5}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
 
@@ -124,29 +187,24 @@ const Profile = () => {
                   <Utensils className="w-5 h-5 text-gray-400" />
                 </div>
 
+                <AddMealDialog onSave={saveMeal} />
+
                 <div className="space-y-4">
-                  {recentMeals.map((meal) => (
-                    <div
-                      key={meal.name}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-4">
-                        <Activity className="w-5 h-5 text-primary" />
-                        <div>
-                          <div className="font-medium">{meal.name}</div>
-                          <div className="text-sm text-gray-500">
-                            {meal.time}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">
-                          {meal.calories} kcal
-                        </span>
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
-                      </div>
+                  {meals.length === 0 ? (
+                    <div className="text-center py-6 text-gray-500">
+                      <p>No meals logged today</p>
+                      <p className="text-sm mt-2">Add a meal or upload a food photo</p>
                     </div>
-                  ))}
+                  ) : (
+                    meals.map((meal) => (
+                      <MealItem 
+                        key={meal.id} 
+                        meal={meal} 
+                        onDelete={deleteMeal}
+                        onUpdate={updateMeal}
+                      />
+                    ))
+                  )}
                 </div>
               </div>
             </div>

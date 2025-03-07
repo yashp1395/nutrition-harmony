@@ -9,7 +9,9 @@ import AnalysisProgress from "../components/upload/AnalysisProgress";
 import DetectedFoodsList from "../components/upload/DetectedFoodsList";
 import ManualEntryForm from "../components/upload/ManualEntryForm";
 import TipsPanel from "../components/upload/TipsPanel";
+import SaveMealButtons from "../components/upload/SaveMealButtons";
 import { useFoodAnalysis } from "../hooks/useFoodAnalysis";
+import { useDetectedFoodSave } from "../hooks/useDetectedFoodSave";
 
 const Upload = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -24,6 +26,11 @@ const Upload = () => {
     addManualFood, 
     removeFood 
   } = useFoodAnalysis();
+  const {
+    saving,
+    saveDetectedFoods,
+    goToProfile
+  } = useDetectedFoodSave();
 
   const processFile = (selectedFile: File) => {
     setFile(selectedFile);
@@ -61,6 +68,10 @@ const Upload = () => {
     await addManualFood(foodName);
   };
 
+  const handleSaveMeal = async (mealType: string) => {
+    return await saveDetectedFoods(detectedFoods, mealType);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -91,7 +102,15 @@ const Upload = () => {
 
               {analyzing && <AnalysisProgress progress={progress} />}
 
-              {/* Detected foods list now appears before the manual entry form and tips panel */}
+              {detectedFoods.length > 0 && (
+                <SaveMealButtons 
+                  onSave={handleSaveMeal}
+                  onGoToProfile={goToProfile}
+                  saving={saving}
+                  detectedFoods={detectedFoods}
+                />
+              )}
+
               <DetectedFoodsList 
                 detectedFoods={detectedFoods} 
                 onRemoveFood={removeFood} 

@@ -11,6 +11,10 @@ export interface FoodItem {
   image_url?: string;
   description?: string;
   is_indian_cuisine: boolean;
+  micronutrients?: {
+    [key: string]: string;
+  };
+  servingSize?: string;
 }
 
 export interface UserMeal {

@@ -1,8 +1,16 @@
+
 import Navbar from "../components/Navbar";
 import SearchBar from "../components/SearchBar";
 import { Apple, Carrot, Coffee, Search, Upload, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const navigate = useNavigate();
+  
+  const handleSectionClick = (path: string) => {
+    navigate(path);
+  };
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -29,21 +37,38 @@ const Index = () => {
         {/* Features Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            <FeatureCard
-              icon={<Search className="w-8 h-8 text-primary" />}
-              title="Search Foods"
-              description="Get instant access to nutritional information for any food item."
-            />
-            <FeatureCard
-              icon={<Upload className="w-8 h-8 text-primary" />}
-              title="Image Upload"
-              description="Upload food images to automatically detect calories and nutrients."
-            />
-            <FeatureCard
-              icon={<User className="w-8 h-8 text-primary" />}
-              title="Track Progress"
-              description="Monitor your daily nutrition intake and achieve your health goals."
-            />
+            <div 
+              onClick={() => handleSectionClick('/search')}
+              className="cursor-pointer transition-transform hover:scale-105"
+            >
+              <FeatureCard
+                icon={<Search className="w-8 h-8 text-primary" />}
+                title="Search Foods"
+                description="Get instant access to nutritional information for any food item."
+              />
+            </div>
+            
+            <div 
+              onClick={() => handleSectionClick('/upload')}
+              className="cursor-pointer transition-transform hover:scale-105"
+            >
+              <FeatureCard
+                icon={<Upload className="w-8 h-8 text-primary" />}
+                title="Image Upload"
+                description="Upload food images to automatically detect calories and nutrients."
+              />
+            </div>
+            
+            <div 
+              onClick={() => handleSectionClick('/profile')}
+              className="cursor-pointer transition-transform hover:scale-105"
+            >
+              <FeatureCard
+                icon={<User className="w-8 h-8 text-primary" />}
+                title="Track Progress"
+                description="Monitor your daily nutrition intake and achieve your health goals."
+              />
+            </div>
           </div>
         </div>
 

@@ -1,16 +1,8 @@
 
 import { Button } from "@/components/ui/button";
-import type { FoodItem } from "../../types/database.types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-interface DetectedFood {
-  name: string;
-  confidence: number;
-  nutrition?: FoodItem;
-  servingSize?: string;
-  isManualEntry?: boolean;
-}
+import type { DetectedFood } from "../../types/database.types";
 
 interface DetectedFoodsListProps {
   detectedFoods: DetectedFood[];

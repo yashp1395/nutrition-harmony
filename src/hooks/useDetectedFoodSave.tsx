@@ -3,13 +3,14 @@ import { useState } from "react";
 import { useMeals } from "./useMeals";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import type { DetectedFood } from "../types/database.types";
 
 export const useDetectedFoodSave = () => {
   const [saving, setSaving] = useState(false);
   const { saveMeal } = useMeals();
   const navigate = useNavigate();
 
-  const saveDetectedFoods = async (detectedFoods: any[], mealType: string = "Snack") => {
+  const saveDetectedFoods = async (detectedFoods: DetectedFood[], mealType: string = "Snack") => {
     if (detectedFoods.length === 0) {
       toast.error("No foods detected to save");
       return false;
@@ -18,7 +19,7 @@ export const useDetectedFoodSave = () => {
     try {
       setSaving(true);
 
-      // Calculate total nutrition values
+      // Calculate total nutrition values with improved accuracy
       const totalCalories = detectedFoods.reduce((sum, food) => 
         sum + (food.nutrition?.calories || 0), 0);
       const totalProtein = detectedFoods.reduce((sum, food) => 

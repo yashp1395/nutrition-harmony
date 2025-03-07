@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import type { DetectedFood } from "../../types/database.types";
 
 interface SaveMealButtonsProps {
   onSave: (mealType: string) => Promise<boolean>;
   onGoToProfile: () => void;
   saving: boolean;
-  detectedFoods: any[];
+  detectedFoods: DetectedFood[];
 }
 
 const SaveMealButtons = ({ onSave, onGoToProfile, saving, detectedFoods }: SaveMealButtonsProps) => {

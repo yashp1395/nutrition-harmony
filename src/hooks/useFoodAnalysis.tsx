@@ -2,15 +2,7 @@ import { useState } from "react";
 import { analyzeImage } from "../utils/visionApi";
 import { getFoodItems } from "../lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
-import type { FoodItem } from "../types/database.types";
-
-interface DetectedFood {
-  name: string;
-  confidence: number;
-  nutrition?: FoodItem;
-  servingSize?: string;
-  isManualEntry?: boolean;
-}
+import type { FoodItem, DetectedFood } from "../types/database.types";
 
 export const useFoodAnalysis = () => {
   const [analyzing, setAnalyzing] = useState(false);
@@ -107,12 +99,12 @@ export const useFoodAnalysis = () => {
           };
         }
         
-        // Otherwise use the nutrition data from API Ninjas
+        // Otherwise use the enhanced nutrition data
         return {
           name: item.name,
           confidence: item.confidence,
           servingSize: item.servingSize,
-          nutrition: createEstimatedNutrition(
+          nutrition: item.nutrition || createEstimatedNutrition(
             item.name, 
             item.calories, 
             item.nutrients

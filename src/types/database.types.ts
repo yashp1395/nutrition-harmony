@@ -29,3 +29,12 @@ export interface AddToMealRequest {
   date?: string;
   quantity?: number;
 }
+
+// Type for tracking food detection confidence
+export interface DetectedFood {
+  name: string;
+  confidence: number;
+  nutrition?: FoodItem;
+  servingSize?: string;
+  isManualEntry?: boolean;
+}

@@ -7,6 +7,7 @@ import type { UserProfile, NutritionGoal } from "../types/user.types";
 export const useProfile = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
   const [goals, setGoals] = useState<NutritionGoal[]>([
     { name: "Calories", current: 0, target: 2000, unit: "kcal" },
     { name: "Protein", current: 0, target: 60, unit: "g" },
@@ -47,6 +48,9 @@ export const useProfile = () => {
           email: data.email,
           avatar_url: data.avatar_url,
         });
+        
+        // Set premium status
+        setIsPremium(data.is_premium || false);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -174,14 +178,44 @@ export const useProfile = () => {
       toast.error('Error logging out');
     }
   };
+  
+  const unlockPremium = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('You must be logged in to unlock premium features');
+        return false;
+      }
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_premium: true })
+        .eq('id', session.user.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      setIsPremium(true);
+      toast.success('Premium features unlocked successfully!');
+      return true;
+    } catch (error) {
+      console.error('Error updating premium status:', error);
+      toast.error('Failed to unlock premium features');
+      return false;
+    }
+  };
 
   return {
     user,
     loading,
     goals,
+    isPremium,
     fetchProfile,
     updateGoal,
     updateGoals,
-    logout
+    logout,
+    unlockPremium
   };
 };

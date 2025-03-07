@@ -3,8 +3,8 @@ export interface UserProfile {
   id: string;
   full_name: string | null;
   email: string | null;
-  avatar_url: string | null;
-  created_at?: string;
+  avatar_url?: string | null;
+  is_premium?: boolean;
 }
 
 export interface NutritionGoal {
@@ -17,15 +17,22 @@ export interface NutritionGoal {
 }
 
 export interface MealEntry {
-  id?: string;
+  id: string;
   user_id?: string;
   name: string;
-  food_items: any[];
+  time: string;
+  date?: string;
   calories: number;
   protein?: number;
   carbs?: number;
   fat?: number;
-  time: string;
-  date?: string;
+  fiber?: number;
+  food_items?: any[];
   image_url?: string;
+}
+
+export interface UserSettings {
+  darkMode: boolean;
+  emailNotifications: boolean;
+  units: 'metric' | 'imperial';
 }

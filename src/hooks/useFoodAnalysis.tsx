@@ -2,6 +2,7 @@ import { useState } from "react";
 import { analyzeImage } from "../utils/visionApi";
 import { getFoodItems } from "../lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { searchFoodWithGemini } from "../utils/gemini/foodSearch";
 import type { FoodItem, DetectedFood } from "../types/database.types";
 
 export const useFoodAnalysis = () => {
@@ -34,6 +35,24 @@ export const useFoodAnalysis = () => {
     };
   };
 
+  const correctCaloriesWithGemini = async (foodName: string, currentCalories: number): Promise<number> => {
+    try {
+      console.log(`Getting corrected calories for ${foodName} from Gemini...`);
+      const results = await searchFoodWithGemini(foodName);
+      
+      if (results && results.length > 0) {
+        const geminiCalories = results[0].calories;
+        console.log(`Gemini calories for ${foodName}: ${geminiCalories}, API Ninjas calories: ${currentCalories}`);
+        return geminiCalories || currentCalories;
+      }
+      
+      return currentCalories;
+    } catch (error) {
+      console.error(`Failed to get corrected calories from Gemini for ${foodName}:`, error);
+      return currentCalories;
+    }
+  };
+
   const analyzeFood = async (imageDataUrl: string) => {
     setAnalyzing(true);
     setProgress(0);
@@ -51,7 +70,7 @@ export const useFoodAnalysis = () => {
         });
       }, 200);
 
-      console.log("Starting image analysis with LogMeal and API Ninjas...");
+      console.log("Starting image analysis with API Ninjas and Gemini correction...");
       
       // Analyze image using API
       const visionResult = await analyzeImage(imageDataUrl);
@@ -84,31 +103,39 @@ export const useFoodAnalysis = () => {
 
       console.log("Detected food items:", Object.keys(detectedItems));
 
-      // Match with database or use API nutrition data
+      // Match with database or use API nutrition data with Gemini calorie correction
       const foodPromises = Object.values(detectedItems).map(async (item: any) => {
         // Try to match with our database first
         const dbNutrition = await matchFoodWithDatabase(item.name);
         
+        let nutritionData;
+        
         // If found in database, use that data
         if (dbNutrition) {
-          return {
-            name: item.name,
-            confidence: item.confidence,
-            servingSize: item.servingSize,
-            nutrition: dbNutrition
+          // Correct calories with Gemini
+          const correctedCalories = await correctCaloriesWithGemini(item.name, dbNutrition.calories);
+          
+          nutritionData = {
+            ...dbNutrition,
+            calories: correctedCalories
           };
+        } else {
+          // Otherwise use the enhanced nutrition data with Gemini calorie correction
+          const apiCalories = item.calories || 100;
+          const correctedCalories = await correctCaloriesWithGemini(item.name, apiCalories);
+          
+          nutritionData = createEstimatedNutrition(
+            item.name, 
+            correctedCalories, 
+            item.nutrients
+          );
         }
         
-        // Otherwise use the enhanced nutrition data
         return {
           name: item.name,
           confidence: item.confidence,
           servingSize: item.servingSize,
-          nutrition: item.nutrition || createEstimatedNutrition(
-            item.name, 
-            item.calories, 
-            item.nutrients
-          )
+          nutrition: nutritionData
         };
       });
 
@@ -135,24 +162,75 @@ export const useFoodAnalysis = () => {
   };
 
   const addManualFood = async (foodName: string) => {
-    const nutrition = await matchFoodWithDatabase(foodName);
-    if (nutrition) {
-      setDetectedFoods([...detectedFoods, {
-        name: foodName,
-        confidence: 1,
-        nutrition,
-        isManualEntry: true
-      }]);
-      toast({
-        title: "Food Added",
-        description: `${foodName} has been added to the list`,
-      });
-      return true;
-    } else {
+    try {
+      // First try to find in database
+      const dbNutrition = await matchFoodWithDatabase(foodName);
+      
+      if (dbNutrition) {
+        // Use database nutrition data with Gemini calorie correction
+        const correctedCalories = await correctCaloriesWithGemini(foodName, dbNutrition.calories);
+        
+        setDetectedFoods([...detectedFoods, {
+          name: foodName,
+          confidence: 1,
+          nutrition: {
+            ...dbNutrition,
+            calories: correctedCalories
+          },
+          isManualEntry: true
+        }]);
+        
+        toast({
+          title: "Food Added",
+          description: `${foodName} has been added to the list`,
+        });
+        return true;
+      } else {
+        // If not in database, search with Gemini
+        const geminiResults = await searchFoodWithGemini(foodName);
+        
+        if (geminiResults && geminiResults.length > 0) {
+          const geminiNutrition = geminiResults[0];
+          
+          setDetectedFoods([...detectedFoods, {
+            name: geminiNutrition.name,
+            confidence: 1,
+            nutrition: {
+              id: `gemini-${geminiNutrition.name}`,
+              name: geminiNutrition.name,
+              category: 'detected',
+              calories: geminiNutrition.calories,
+              protein: geminiNutrition.protein,
+              carbs: geminiNutrition.carbs,
+              fat: geminiNutrition.fat,
+              fiber: geminiNutrition.fiber || 1,
+              is_indian_cuisine: false,
+              servingSize: geminiNutrition.servingSize
+            },
+            servingSize: geminiNutrition.servingSize,
+            isManualEntry: true
+          }]);
+          
+          toast({
+            title: "Food Added",
+            description: `${geminiNutrition.name} has been added to the list`,
+          });
+          return true;
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Food Not Found",
+            description: "This food item was not found in our database or Gemini API",
+          });
+          return false;
+        }
+      }
+    } catch (error) {
+      console.error('Error adding manual food:', error);
       toast({
         variant: "destructive",
-        title: "Food Not Found",
-        description: "This food item was not found in our database",
+        title: "Error",
+        description: "Failed to add food. Please try again.",
       });
       return false;
     }

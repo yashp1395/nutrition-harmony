@@ -25,7 +25,7 @@ const ProfileSettings = ({
   avatarUrl, 
   onLogout 
 }: ProfileSettingsProps) => {
-  const { theme, setTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const [isDarkMode, setIsDarkMode] = useState(theme === 'dark');
 
   useEffect(() => {
@@ -41,16 +41,10 @@ const ProfileSettings = ({
       .slice(0, 2);
   };
 
-  const toggleDarkMode = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    setIsDarkMode(newTheme === 'dark');
-  };
-
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
       <div className="text-center mb-6">
-        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="w-24 h-24 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
           {avatarUrl ? (
             <img 
               src={avatarUrl} 
@@ -58,19 +52,19 @@ const ProfileSettings = ({
               className="w-24 h-24 rounded-full object-cover"
             />
           ) : (
-            <span className="text-2xl font-semibold text-primary">
+            <span className="text-2xl font-semibold text-primary dark:text-primary">
               {getInitials(userName)}
             </span>
           )}
         </div>
-        <h2 className="text-xl font-semibold">{userName || 'User'}</h2>
-        <p className="text-gray-500">{userEmail || 'user@example.com'}</p>
+        <h2 className="text-xl font-semibold dark:text-white">{userName || 'User'}</h2>
+        <p className="text-gray-500 dark:text-gray-400">{userEmail || 'user@example.com'}</p>
       </div>
 
       <div className="space-y-2">
         <Button
           variant="outline"
-          className="w-full justify-start"
+          className="w-full justify-start dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
           size="sm"
         >
           <Settings className="w-4 h-4 mr-2" />
@@ -78,7 +72,7 @@ const ProfileSettings = ({
         </Button>
         <Button
           variant="outline"
-          className="w-full justify-start"
+          className="w-full justify-start dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
           size="sm"
         >
           <Bell className="w-4 h-4 mr-2" />
@@ -86,7 +80,7 @@ const ProfileSettings = ({
         </Button>
         <Button
           variant="outline"
-          className="w-full justify-start"
+          className="w-full justify-start dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
           size="sm"
         >
           <Lock className="w-4 h-4 mr-2" />
@@ -94,9 +88,9 @@ const ProfileSettings = ({
         </Button>
         <Button
           variant="outline"
-          className="w-full justify-start"
+          className="w-full justify-start dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
           size="sm"
-          onClick={toggleDarkMode}
+          onClick={toggleTheme}
         >
           {isDarkMode ? (
             <Sun className="w-4 h-4 mr-2" />
@@ -107,7 +101,7 @@ const ProfileSettings = ({
         </Button>
         <Button
           variant="outline"
-          className="w-full justify-start"
+          className="w-full justify-start dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
           size="sm"
           onClick={() => window.location.href = "mailto:yash.patil.13092005@gmail.com"}
         >
@@ -116,7 +110,7 @@ const ProfileSettings = ({
         </Button>
         <Button
           variant="outline"
-          className="w-full justify-start"
+          className="w-full justify-start dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
           size="sm"
           onClick={onLogout}
         >

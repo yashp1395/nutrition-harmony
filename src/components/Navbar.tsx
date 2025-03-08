@@ -6,11 +6,13 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { useEffect, useState } from "react";
 import GetStartedButton from "./common/GetStartedButton";
+import { useTheme } from "../hooks/useTheme";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -28,12 +30,12 @@ const Navbar = () => {
   }, []);
 
   return (
-    <nav className="bg-white shadow-sm">
+    <nav className="bg-white dark:bg-gray-800 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold text-primary">Calorie Tracker</span>
+              <span className="text-2xl font-bold text-primary dark:text-primary">Calorie Tracker</span>
             </Link>
           </div>
           <div className="flex items-center space-x-4">

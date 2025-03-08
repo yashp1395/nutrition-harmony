@@ -82,3 +82,10 @@
     @apply flex flex-col items-center justify-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors;
   }
 }
+
+/* Dark mode transitions */
+.dark *, * {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}

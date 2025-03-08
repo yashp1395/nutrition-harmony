@@ -20,10 +20,46 @@ const GetStartedButton = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const navigate = useNavigate();
 
-  const handleGetStarted = () => {
-    setShowDialog(true);
+  const checkPremiumStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        return false;
+      }
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_premium')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (error) {
+        throw error;
+      }
+      
+      return data?.is_premium || false;
+    } catch (error) {
+      console.error('Error checking premium status:', error);
+      return false;
+    }
+  };
+
+  const handleGetStarted = async () => {
+    // Check if the user is already premium
+    const premium = await checkPremiumStatus();
+    setIsPremium(premium);
+    
+    if (premium) {
+      // If premium, redirect to profile page
+      navigate("/profile");
+    } else {
+      // If not premium, show the dialog
+      setShowDialog(true);
+    }
   };
 
   const handleCouponSubmit = async () => {
@@ -78,28 +114,29 @@ const GetStartedButton = () => {
       </Button>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:bg-gray-800 dark:text-white">
           <DialogHeader>
-            <DialogTitle>Unlock Premium Features</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="dark:text-white">Unlock Premium Features</DialogTitle>
+            <DialogDescription className="dark:text-gray-300">
               Get access to all premium features including Daily Goals, Nutrition Distribution, and Today's Meals tracking.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="coupon">Coupon Code</Label>
+              <Label htmlFor="coupon" className="dark:text-gray-200">Coupon Code</Label>
               <Input
                 id="coupon"
                 placeholder="Enter your coupon code"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value)}
+                className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
               />
             </div>
-            <div className="bg-primary/10 p-3 rounded-md">
-              <h4 className="font-medium flex items-center">
+            <div className="bg-primary/10 dark:bg-primary/5 p-3 rounded-md">
+              <h4 className="font-medium flex items-center dark:text-white">
                 <Sparkles className="w-4 h-4 mr-2" /> Premium Benefits
               </h4>
-              <ul className="text-sm mt-2 space-y-1">
+              <ul className="text-sm mt-2 space-y-1 dark:text-gray-300">
                 <li>• Track your daily nutrition goals</li>
                 <li>• View detailed nutrition distribution</li>
                 <li>• Log and monitor your meals</li>
@@ -119,7 +156,7 @@ const GetStartedButton = () => {
             <Button 
               variant="outline" 
               onClick={() => setShowDialog(false)}
-              className="mt-2 sm:mt-0"
+              className="mt-2 sm:mt-0 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
             >
               Cancel
             </Button>

@@ -6,8 +6,10 @@ import { useProfile } from "../hooks/useProfile";
 import { useMeals } from "../hooks/useMeals";
 import ProfileSettings from "../components/profile/ProfileSettings";
 import ProfileContent from "../components/profile/ProfileContent";
+import { useTheme } from "../hooks/useTheme";
 
 const Profile = () => {
+  const { theme } = useTheme();
   const { 
     user, 
     loading: userLoading, 
@@ -32,13 +34,13 @@ const Profile = () => {
     // Prepare data for the pie chart
     if (goals.length > 0) {
       const data = [
-        { name: 'Protein', value: goals.find(g => g.name === 'Protein')?.current || 0, color: '#4f46e5' },
-        { name: 'Carbs', value: goals.find(g => g.name === 'Carbs')?.current || 0, color: '#10b981' },
-        { name: 'Fat', value: goals.find(g => g.name === 'Fat')?.current || 0, color: '#f59e0b' }
+        { name: 'Protein', value: goals.find(g => g.name === 'Protein')?.current || 0, color: theme === 'dark' ? '#6366f1' : '#4f46e5' },
+        { name: 'Carbs', value: goals.find(g => g.name === 'Carbs')?.current || 0, color: theme === 'dark' ? '#34d399' : '#10b981' },
+        { name: 'Fat', value: goals.find(g => g.name === 'Fat')?.current || 0, color: theme === 'dark' ? '#fbbf24' : '#f59e0b' }
       ];
       setChartData(data);
     }
-  }, [goals]);
+  }, [goals, theme]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

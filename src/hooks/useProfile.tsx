@@ -47,6 +47,7 @@ export const useProfile = () => {
           full_name: data.full_name,
           email: data.email,
           avatar_url: data.avatar_url,
+          is_premium: data.is_premium,
         });
         
         // Set premium status
@@ -198,6 +199,7 @@ export const useProfile = () => {
       }
       
       setIsPremium(true);
+      await fetchProfile(); // Refresh user data
       toast.success('Premium features unlocked successfully!');
       return true;
     } catch (error) {

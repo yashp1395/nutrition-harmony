@@ -5,6 +5,7 @@ export interface UserProfile {
   email: string | null;
   avatar_url?: string | null;
   is_premium?: boolean;
+  theme_preference?: 'light' | 'dark';
 }
 
 export interface NutritionGoal {

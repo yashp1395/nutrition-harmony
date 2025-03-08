@@ -14,6 +14,7 @@ import About from "./pages/About";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -23,9 +24,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setAuthenticated(!!session);
-      setLoading(false);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setAuthenticated(!!session);
+      } catch (error) {
+        console.error("Auth check error:", error);
+        setAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
     };
 
     checkAuth();
@@ -38,7 +45,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-12 w-12 text-primary animate-spin" />
+          <p className="text-lg text-gray-600 dark:text-gray-300">Loading application...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!authenticated) {

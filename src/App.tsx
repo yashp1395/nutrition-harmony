@@ -31,17 +31,22 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         const { data: { session }, error } = await supabase.auth.getSession();
         
         // Log authentication results
-        console.log("Auth check result:", { session: !!session, error });
+        console.log("Auth check result:", { 
+          sessionExists: !!session, 
+          userId: session?.user?.id || 'none',
+          error 
+        });
         
         if (error) {
+          console.error("Authentication error:", error);
           throw error;
         }
         
         setAuthenticated(!!session);
+        setLoading(false);
       } catch (error) {
         console.error("Auth check error:", error);
         setAuthenticated(false);
-      } finally {
         setLoading(false);
       }
     };
@@ -49,7 +54,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event, session ? "session exists" : "no session");
+      console.log("Auth state changed:", event, session ? `User: ${session.user.id}` : "no session");
       setAuthenticated(!!session);
       setLoading(false); // Ensure loading is set to false on auth state change
     });

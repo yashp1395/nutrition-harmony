@@ -33,8 +33,11 @@ const GetStartedButton = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        console.log("No active session found");
         return false;
       }
+      
+      console.log("Checking premium status for user:", session.user.id);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -47,6 +50,7 @@ const GetStartedButton = () => {
         return false;
       }
       
+      console.log("Premium status check result:", data);
       return data?.is_premium || false;
     } catch (error) {
       console.error('Error checking premium status:', error);
@@ -62,6 +66,7 @@ const GetStartedButton = () => {
     if (premium) {
       // If premium, redirect to profile page
       navigate("/profile");
+      toast.success("You already have premium access!");
     } else {
       // If not premium, show the dialog
       setShowDialog(true);
@@ -84,10 +89,11 @@ const GetStartedButton = () => {
       }
       
       // Debug log to check coupon code
-      console.log("Entered coupon code:", couponCode, "Comparing with:", "pbl2025");
+      const trimmedCode = couponCode.trim().toLowerCase();
+      console.log("Entered coupon code:", trimmedCode, "Comparing with:", "pbl2025");
       
-      // Simple coupon validation - use trim() to remove any whitespace
-      if (couponCode.trim().toLowerCase() === "pbl2025") {
+      // Simple coupon validation with trim() to remove whitespace
+      if (trimmedCode === "pbl2025") {
         // Update the user's premium status in the database
         const { error } = await supabase
           .from('profiles')

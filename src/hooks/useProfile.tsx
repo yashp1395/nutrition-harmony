@@ -24,12 +24,17 @@ export const useProfile = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true);
+      console.log("Fetching profile...");
       
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        console.log("No active session found");
+        setLoading(false);
         return;
       }
+      
+      console.log("Found session for user:", session.user.id);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -38,8 +43,11 @@ export const useProfile = () => {
         .single();
         
       if (error) {
+        console.error('Error fetching profile:', error);
         throw error;
       }
+      
+      console.log("Profile data:", data);
       
       if (data) {
         setUser({
@@ -48,10 +56,12 @@ export const useProfile = () => {
           email: data.email,
           avatar_url: data.avatar_url,
           is_premium: data.is_premium,
+          theme_preference: data.theme_preference,
         });
         
         // Set premium status
         setIsPremium(data.is_premium || false);
+        console.log("Premium status set to:", data.is_premium || false);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -63,11 +73,15 @@ export const useProfile = () => {
 
   const fetchGoals = async () => {
     try {
+      console.log("Fetching goals...");
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        console.log("No active session for fetching goals");
         return;
       }
+      
+      console.log("Fetching goals for user:", session.user.id);
       
       const { data, error } = await supabase
         .from('nutrition_goals')
@@ -75,8 +89,11 @@ export const useProfile = () => {
         .eq('user_id', session.user.id);
         
       if (error) {
+        console.error('Error fetching goals:', error);
         throw error;
       }
+      
+      console.log("Goals data:", data);
       
       if (data && data.length > 0) {
         setGoals(data.map(goal => ({
@@ -89,6 +106,7 @@ export const useProfile = () => {
         })));
       } else {
         // If no goals found, create default goals
+        console.log("No goals found, creating defaults");
         await createDefaultGoals(session.user.id);
       }
     } catch (error) {
@@ -105,14 +123,19 @@ export const useProfile = () => {
         { user_id: userId, name: "Fat", current: 0, target: 65, unit: "g" },
       ];
       
+      console.log("Creating default goals for user:", userId);
+      
       const { data, error } = await supabase
         .from('nutrition_goals')
         .insert(defaultGoals)
         .select();
         
       if (error) {
+        console.error('Error creating default goals:', error);
         throw error;
       }
+      
+      console.log("Default goals created:", data);
       
       if (data) {
         setGoals(data);

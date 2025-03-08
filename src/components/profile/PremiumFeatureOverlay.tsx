@@ -39,8 +39,11 @@ const PremiumFeatureOverlay = ({
     setIsSubmitting(true);
     
     try {
-      // Simple coupon validation
-      if (couponCode.toLowerCase() === "pbl2025") {
+      // Debug log
+      console.log("PremiumFeatureOverlay - Entered coupon code:", couponCode, "Comparing with:", "pbl2025");
+      
+      // Simple coupon validation with trim to remove whitespace
+      if (couponCode.trim().toLowerCase() === "pbl2025") {
         const success = await onUnlock();
         
         if (success) {

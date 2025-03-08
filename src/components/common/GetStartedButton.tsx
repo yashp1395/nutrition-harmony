@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,11 @@ const GetStartedButton = () => {
   const [isPremium, setIsPremium] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Check premium status when component mounts
+    checkPremiumStatus().then(status => setIsPremium(status));
+  }, []);
+
   const checkPremiumStatus = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -38,7 +43,8 @@ const GetStartedButton = () => {
         .single();
         
       if (error) {
-        throw error;
+        console.error('Error checking premium status:', error);
+        return false;
       }
       
       return data?.is_premium || false;
@@ -77,8 +83,11 @@ const GetStartedButton = () => {
         return;
       }
       
-      // Simple coupon validation
-      if (couponCode.toLowerCase() === "pbl2025") {
+      // Debug log to check coupon code
+      console.log("Entered coupon code:", couponCode, "Comparing with:", "pbl2025");
+      
+      // Simple coupon validation - use trim() to remove any whitespace
+      if (couponCode.trim().toLowerCase() === "pbl2025") {
         // Update the user's premium status in the database
         const { error } = await supabase
           .from('profiles')
@@ -86,8 +95,12 @@ const GetStartedButton = () => {
           .eq('id', session.user.id);
           
         if (error) {
+          console.error("Error updating premium status:", error);
           throw error;
         }
+        
+        // Set local state
+        setIsPremium(true);
         
         toast.success("Premium features unlocked successfully!");
         navigate("/profile");

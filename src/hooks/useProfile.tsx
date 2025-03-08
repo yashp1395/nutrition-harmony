@@ -182,11 +182,33 @@ export const useProfile = () => {
   
   const unlockPremium = async () => {
     try {
+      console.log("Attempting to unlock premium features");
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        console.error("No active session found");
         toast.error('You must be logged in to unlock premium features');
         return false;
+      }
+      
+      console.log("User ID:", session.user.id);
+      
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_premium')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        throw profileError;
+      }
+      
+      // If already premium, just return true
+      if (profile?.is_premium) {
+        console.log("User is already premium");
+        setIsPremium(true);
+        return true;
       }
       
       const { error } = await supabase
@@ -195,12 +217,14 @@ export const useProfile = () => {
         .eq('id', session.user.id);
         
       if (error) {
+        console.error("Error updating premium status:", error);
         throw error;
       }
       
+      console.log("Premium status updated successfully");
+      
       setIsPremium(true);
       await fetchProfile(); // Refresh user data
-      toast.success('Premium features unlocked successfully!');
       return true;
     } catch (error) {
       console.error('Error updating premium status:', error);

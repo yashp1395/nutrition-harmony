@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,29 +8,65 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        console.log("Auth: Checking for existing session...");
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session check error:", error);
+          setCheckingSession(false);
+          return;
+        }
+        
+        if (session) {
+          console.log("Auth: User already has a session, redirecting to home");
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+      } finally {
+        setCheckingSession(false);
+      }
+    };
+
+    checkSession();
+  }, [navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      console.log("Attempting signup with email:", email);
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
+      
       if (error) throw error;
-      toast({
-        title: "Account created!",
-        description: "You can now sign in with your credentials.",
-      });
+      
+      if (data?.user?.id) {
+        console.log("Signup successful, user created:", data.user.id);
+        toast.success("Account created! You can now sign in with your credentials.");
+      } else {
+        console.log("Signup completed but awaiting email confirmation");
+        toast.info("Please check your email to confirm your account.");
+      }
     } catch (error: any) {
-      toast({
+      console.error("Signup error:", error);
+      uiToast({
         variant: "destructive",
         title: "Error",
         description: error.message,
@@ -44,15 +80,19 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log("Attempting login with email:", email);
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+      
       if (error) throw error;
+      
+      console.log("Login successful:", data.user?.id);
       navigate("/");
     } catch (error: any) {
       console.error("Login error:", error);
-      toast({
+      uiToast({
         variant: "destructive",
         title: "Error",
         description: error.message,
@@ -61,6 +101,18 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  // Show loading while checking session
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          <p className="text-gray-600 dark:text-gray-300">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">

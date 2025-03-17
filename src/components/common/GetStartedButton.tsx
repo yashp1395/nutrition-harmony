@@ -59,6 +59,16 @@ const GetStartedButton = () => {
   };
 
   const handleGetStarted = async () => {
+    // Check if user is authenticated first
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      // If not authenticated, redirect to auth page
+      navigate("/auth");
+      toast.info("Please sign in to continue");
+      return;
+    }
+    
     // Check if the user is already premium
     const premium = await checkPremiumStatus();
     setIsPremium(premium);
@@ -90,7 +100,7 @@ const GetStartedButton = () => {
       
       // Debug log to check coupon code
       const trimmedCode = couponCode.trim().toLowerCase();
-      console.log("Entered coupon code:", trimmedCode, "Comparing with:", "pbl2025");
+      console.log("GetStartedButton - Entered coupon code:", trimmedCode, "Comparing with:", "pbl2025");
       
       // Simple coupon validation with trim() to remove whitespace
       if (trimmedCode === "pbl2025") {
@@ -110,6 +120,7 @@ const GetStartedButton = () => {
         
         toast.success("Premium features unlocked successfully!");
         navigate("/profile");
+        setShowDialog(false);
       } else {
         toast.error("Invalid coupon code. Please try again.");
       }
@@ -118,7 +129,6 @@ const GetStartedButton = () => {
       toast.error("Failed to process your request. Please try again.");
     } finally {
       setIsSubmitting(false);
-      setShowDialog(false);
     }
   };
 

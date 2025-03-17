@@ -138,6 +138,8 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_premium: boolean | null
+          prefers_dark_mode: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -145,6 +147,8 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          is_premium?: boolean | null
+          prefers_dark_mode?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -152,6 +156,8 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_premium?: boolean | null
+          prefers_dark_mode?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
@@ -199,7 +205,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      apply_coupon: {
+        Args: {
+          user_id: string
+          coupon_code: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -37,14 +36,12 @@ const ProfileContent = ({
 }: ProfileContentProps) => {
   const [showAnimation, setShowAnimation] = useState(true);
   
-  // Reset animation when goals change
   useEffect(() => {
     setShowAnimation(false);
     const timer = setTimeout(() => setShowAnimation(true), 50);
     return () => clearTimeout(timer);
   }, [goals]);
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -65,6 +62,13 @@ const ProfileContent = ({
     }
   };
 
+  const openAddMealDialog = () => {
+    const addMealButton = document.querySelector('[data-add-meal-dialog="true"]') as HTMLElement;
+    if (addMealButton) {
+      addMealButton.click();
+    }
+  };
+
   return (
     <motion.div 
       className="md:col-span-2 space-y-8"
@@ -72,7 +76,6 @@ const ProfileContent = ({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Daily Goals */}
       <PremiumFeatureOverlay
         title="Daily Goals"
         isPremium={isPremium}
@@ -130,7 +133,6 @@ const ProfileContent = ({
             )}
           </AnimatePresence>
 
-          {/* Nutrition Distribution Chart */}
           <div className="mt-8">
             <div className="flex items-center mb-4">
               <div className="bg-primary/10 dark:bg-primary/20 p-2 rounded-full mr-3">
@@ -180,7 +182,6 @@ const ProfileContent = ({
             </motion.div>
           </div>
 
-          {/* Quick Stats */}
           <motion.div 
             className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4"
             initial={{ opacity: 0, y: 20 }}
@@ -229,7 +230,6 @@ const ProfileContent = ({
         </motion.div>
       </PremiumFeatureOverlay>
 
-      {/* Today's Meals */}
       <PremiumFeatureOverlay
         title="Today's Meals"
         isPremium={isPremium}
@@ -263,7 +263,7 @@ const ProfileContent = ({
                 <p>No meals logged today</p>
                 <p className="text-sm mt-2">Add a meal or upload a food photo</p>
                 <Button 
-                  onClick={() => document.querySelector('[data-add-meal-dialog="true"]')?.click()}
+                  onClick={openAddMealDialog}
                   className="mt-4 bg-primary/10 text-primary hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30"
                   variant="ghost"
                 >

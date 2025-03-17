@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Zap, Gift, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 
@@ -21,6 +21,7 @@ const GetStartedButton = () => {
   const [couponCode, setCouponCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -136,56 +137,94 @@ const GetStartedButton = () => {
     <>
       <Button 
         onClick={handleGetStarted}
-        className="bg-gradient-to-r from-green-500 to-primary hover:from-green-600 hover:to-primary/90 px-6 py-2 h-auto text-base font-medium shadow-lg hover:shadow-xl transition-all"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`relative overflow-hidden bg-gradient-to-r from-green-500 to-primary hover:from-green-600 hover:to-primary/90 px-6 py-2 h-auto text-base font-medium shadow-lg hover:shadow-xl transition-all duration-300 ${isHovered ? 'scale-105' : ''}`}
       >
-        <Sparkles className="w-4 h-4 mr-2" />
-        Get Started Now
+        <span className={`flex items-center transition-transform duration-300 ${isHovered ? 'translate-x-1' : ''}`}>
+          <Sparkles className={`w-4 h-4 mr-2 transition-all duration-300 ${isHovered ? 'rotate-12 scale-110' : ''}`} />
+          Get Started Now
+        </span>
+        {isHovered && (
+          <span className="absolute inset-0 bg-white/10 animate-pulse rounded-md"></span>
+        )}
       </Button>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-[425px] dark:bg-gray-800 dark:text-white">
+        <DialogContent className="sm:max-w-[425px] dark:bg-gray-800/95 backdrop-blur-sm dark:text-white border dark:border-gray-700 shadow-xl transition-all duration-300 animate-fadeIn">
           <DialogHeader>
-            <DialogTitle className="dark:text-white">Unlock Premium Features</DialogTitle>
+            <DialogTitle className="dark:text-white flex items-center">
+              <Gift className="w-5 h-5 mr-2 text-primary" />
+              Unlock Premium Features
+            </DialogTitle>
             <DialogDescription className="dark:text-gray-300">
               Get access to all premium features including Daily Goals, Nutrition Distribution, and Today's Meals tracking.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-5 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="coupon" className="dark:text-gray-200">Coupon Code</Label>
+              <Label htmlFor="coupon" className="dark:text-gray-200 flex items-center">
+                <Zap className="w-4 h-4 mr-2 text-yellow-500" />
+                Coupon Code
+              </Label>
               <Input
                 id="coupon"
                 placeholder="Enter your coupon code"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value)}
-                className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                className="dark:bg-gray-700/70 dark:text-white dark:border-gray-600 focus:ring-primary focus:border-primary transition-all"
               />
             </div>
-            <div className="bg-primary/10 dark:bg-primary/5 p-3 rounded-md">
+            <div className="bg-primary/10 dark:bg-primary/5 p-4 rounded-md border border-primary/20 dark:border-primary/10">
               <h4 className="font-medium flex items-center dark:text-white">
-                <Sparkles className="w-4 h-4 mr-2" /> Premium Benefits
+                <Sparkles className="w-4 h-4 mr-2 text-primary" /> Premium Benefits
               </h4>
-              <ul className="text-sm mt-2 space-y-1 dark:text-gray-300">
-                <li>• Track your daily nutrition goals</li>
-                <li>• View detailed nutrition distribution</li>
-                <li>• Log and monitor your meals</li>
-                <li>• Get personalized recommendations</li>
+              <ul className="text-sm mt-3 space-y-2 dark:text-gray-300">
+                <li className="flex items-start">
+                  <Check className="w-4 h-4 mr-2 text-primary mt-0.5 flex-shrink-0" />
+                  <span>Track your daily nutrition goals with detailed insights</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="w-4 h-4 mr-2 text-primary mt-0.5 flex-shrink-0" />
+                  <span>View comprehensive nutrition distribution charts</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="w-4 h-4 mr-2 text-primary mt-0.5 flex-shrink-0" />
+                  <span>Log and monitor your meals with intelligent tracking</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="w-4 h-4 mr-2 text-primary mt-0.5 flex-shrink-0" />
+                  <span>Get personalized nutrition recommendations</span>
+                </li>
               </ul>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button
               type="submit"
               onClick={handleCouponSubmit}
               disabled={isSubmitting}
-              className="bg-gradient-to-r from-green-500 to-primary hover:from-green-600 hover:to-primary/90"
+              className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-primary hover:from-green-600 hover:to-primary/90 transition-all duration-300"
             >
-              {isSubmitting ? "Verifying..." : "Unlock Premium"}
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Verifying...
+                </span>
+              ) : (
+                <span className="flex items-center">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Unlock Premium
+                </span>
+              )}
             </Button>
             <Button 
               variant="outline" 
               onClick={() => setShowDialog(false)}
-              className="mt-2 sm:mt-0 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+              className="w-full sm:w-auto dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               Cancel
             </Button>

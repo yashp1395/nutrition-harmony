@@ -1,5 +1,5 @@
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { fetchNutritionData } from "./nutritionApi";
 
 // Initialize with the Gemini API key
 const genAI = new GoogleGenerativeAI("AIzaSyA9gMflnfM-uteYZiFIoTYefjPYh5VDQG0");
@@ -15,14 +15,15 @@ export const analyzeWithGemini = async (imageBase64) => {
   1. The exact name of the food
   2. An estimate of calories per serving
   3. The standard serving size
+  4. Estimated macronutrients (protein, carbs, fat, fiber) in grams
 
   Format your response exactly like this:
-  Food: [food name], Calories: [number], Serving: [serving size]
+  Food: [food name], Calories: [number], Serving: [serving size], Protein: [number]g, Carbs: [number]g, Fat: [number]g, Fiber: [number]g
   
   For example:
-  Food: Apple, Calories: 95, Serving: 1 medium (182g)
-  Food: White Rice, Calories: 205, Serving: 1 cup cooked (158g)
-  Food: Grilled Chicken Breast, Calories: 165, Serving: 3 oz (85g)
+  Food: Apple, Calories: 95, Serving: 1 medium (182g), Protein: 0.5g, Carbs: 25g, Fat: 0.3g, Fiber: 4.4g
+  Food: White Rice, Calories: 205, Serving: 1 cup cooked (158g), Protein: 4.3g, Carbs: 45g, Fat: 0.4g, Fiber: 0.6g
+  Food: Grilled Chicken Breast, Calories: 165, Serving: 3 oz (85g), Protein: 31g, Carbs: 0g, Fat: 3.6g, Fiber: 0g
   
   Be precise and detailed about each food item. If there are multiple food items, list each one separately.`;
 
@@ -36,51 +37,17 @@ export const analyzeWithGemini = async (imageBase64) => {
     const responseText = await result.response.text();
     console.log("Gemini API response:", responseText);
 
-    // Parse the text response, fetch nutrition data
+    // Parse the text response
     const parsedFoods = parseGeminiResponse(responseText);
     
     if (parsedFoods.length === 0) {
       throw new Error("Gemini API couldn't identify any food in the image");
     }
-    
-    const enhancedFoods = await Promise.all(parsedFoods.map(async (food) => {
-      try {
-        const nutritionData = await fetchNutritionData(food.name);
-        
-        // Keep track of the original Gemini calories before potentially modifying
-        const geminiCalories = food.calories;
-        
-        if (nutritionData && nutritionData.length > 0) {
-          const nutrition = nutritionData[0];
-          
-          // If Gemini provided calories, prioritize those
-          if (geminiCalories && !isNaN(geminiCalories)) {
-            food.calories = geminiCalories;
-          } else {
-            food.calories = Math.round(nutrition.calories || 100);
-          }
-          
-          food.nutrients.protein = Math.round(nutrition.protein_g || 0);
-          food.nutrients.carbs = Math.round(nutrition.carbohydrates_total_g || 0);
-          food.nutrients.fat = Math.round(nutrition.fat_total_g || 0);
-          food.nutrients.fiber = Math.round(nutrition.fiber_g || 0);
-        } else {
-          // If no nutrition data found but Gemini gave calories, keep them
-          if (!geminiCalories || isNaN(geminiCalories)) {
-            food.calories = 100; // Default if no calories available
-          }
-        }
-        return food;
-      } catch (error) {
-        console.error(`Failed to enhance food ${food.name} with nutrition data:`, error);
-        return food;
-      }
-    }));
 
     return {
       responses: [{
-        localizedObjectAnnotations: enhancedFoods,
-        labelAnnotations: enhancedFoods.map(food => ({
+        localizedObjectAnnotations: parsedFoods,
+        labelAnnotations: parsedFoods.map(food => ({
           description: food.name,
           score: 0.9
         }))
@@ -95,8 +62,8 @@ export const analyzeWithGemini = async (imageBase64) => {
 // Function to parse Gemini's text response
 export const parseGeminiResponse = (responseText) => {
   const detectedFoods = [];
-  // Improved regex to better match Gemini's output format
-  const foodRegex = /Food:\s*([\w\s\-,']+),\s*Calories:\s*(\d+),\s*Serving:\s*([\w\s\d.()]+)/gi;
+  // Improved regex to match Gemini's output format including macronutrients
+  const foodRegex = /Food:\s*([\w\s\-,']+),\s*Calories:\s*(\d+),\s*Serving:\s*([\w\s\d.()]+)(?:,\s*Protein:\s*([\d.]+)g)?(?:,\s*Carbs:\s*([\d.]+)g)?(?:,\s*Fat:\s*([\d.]+)g)?(?:,\s*Fiber:\s*([\d.]+)g)?/gi;
 
   let match;
   while ((match = foodRegex.exec(responseText)) !== null) {
@@ -106,10 +73,10 @@ export const parseGeminiResponse = (responseText) => {
       servingSize: match[3].trim(),
       calories: parseInt(match[2]),
       nutrients: { 
-        protein: 0, 
-        carbs: 0, 
-        fat: 0, 
-        fiber: 0 
+        protein: match[4] ? parseFloat(match[4]) : 0, 
+        carbs: match[5] ? parseFloat(match[5]) : 0, 
+        fat: match[6] ? parseFloat(match[6]) : 0, 
+        fiber: match[7] ? parseFloat(match[7]) : 0 
       }
     });
   }

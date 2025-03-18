@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { analyzeImage } from "../utils/visionApi";
 import { getFoodItems } from "../lib/supabase";
@@ -42,7 +43,7 @@ export const useFoodAnalysis = () => {
       
       if (results && results.length > 0) {
         const geminiCalories = results[0].calories;
-        console.log(`Gemini calories for ${foodName}: ${geminiCalories}, API Ninjas calories: ${currentCalories}`);
+        console.log(`Gemini calories for ${foodName}: ${geminiCalories}, current calories: ${currentCalories}`);
         if (geminiCalories && !isNaN(geminiCalories)) {
           return geminiCalories;
         }
@@ -72,7 +73,7 @@ export const useFoodAnalysis = () => {
         });
       }, 200);
 
-      console.log("Starting image analysis with API Ninjas and Gemini correction...");
+      console.log("Starting image analysis with Gemini...");
       
       // Analyze image using API
       const visionResult = await analyzeImage(imageDataUrl);
@@ -105,7 +106,7 @@ export const useFoodAnalysis = () => {
 
       console.log("Detected food items:", Object.keys(detectedItems));
 
-      // Match with database or use API nutrition data with Gemini calorie correction
+      // Process detected items
       const foodPromises = Object.values(detectedItems).map(async (item: any) => {
         // Try to match with our database first
         const dbNutrition = await matchFoodWithDatabase(item.name);
@@ -126,7 +127,7 @@ export const useFoodAnalysis = () => {
             calories: itemCalories
           };
         } else {
-          // Otherwise use the enhanced nutrition data
+          // Use the Gemini-provided nutrition data
           // First check if we already have calories from the API response
           let finalCalories = item.calories;
           

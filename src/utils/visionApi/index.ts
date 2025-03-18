@@ -1,7 +1,6 @@
 
 import { analyzeWithGemini } from "./geminiApi";
 import { analyzeWithLogMeal, formatLogMealResponse } from "./logMealApi";
-import { enhanceWithNutritionData } from "./nutritionApi";
 
 // Main entry point - analyze the image and get food information
 export const analyzeImage = async (imageBase64) => {
@@ -16,9 +15,8 @@ export const analyzeImage = async (imageBase64) => {
         if (logMealResult && logMealResult.length > 0) {
           console.log("LogMeal API detection successful:", logMealResult);
           
-          // Get nutrition data from API Ninjas for each detected food
-          const enhancedResults = await enhanceWithNutritionData(logMealResult);
-          return formatLogMealResponse(enhancedResults);
+          // Format the LogMeal results without API Ninjas enhancement
+          return formatLogMealResponse(logMealResult);
         } else {
           console.log("LogMeal API returned no results, trying Gemini");
           throw new Error("No foods detected with LogMeal API");

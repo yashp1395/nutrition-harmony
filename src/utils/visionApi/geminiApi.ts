@@ -1,4 +1,3 @@
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { fetchNutritionData } from "./nutritionApi";
 
@@ -47,13 +46,29 @@ export const analyzeWithGemini = async (imageBase64) => {
     const enhancedFoods = await Promise.all(parsedFoods.map(async (food) => {
       try {
         const nutritionData = await fetchNutritionData(food.name);
+        
+        // Keep track of the original Gemini calories before potentially modifying
+        const geminiCalories = food.calories;
+        
         if (nutritionData && nutritionData.length > 0) {
           const nutrition = nutritionData[0];
-          food.calories = Math.round(nutrition.calories || food.calories);
+          
+          // If Gemini provided calories, prioritize those
+          if (geminiCalories && !isNaN(geminiCalories)) {
+            food.calories = geminiCalories;
+          } else {
+            food.calories = Math.round(nutrition.calories || 100);
+          }
+          
           food.nutrients.protein = Math.round(nutrition.protein_g || 0);
           food.nutrients.carbs = Math.round(nutrition.carbohydrates_total_g || 0);
           food.nutrients.fat = Math.round(nutrition.fat_total_g || 0);
           food.nutrients.fiber = Math.round(nutrition.fiber_g || 0);
+        } else {
+          // If no nutrition data found but Gemini gave calories, keep them
+          if (!geminiCalories || isNaN(geminiCalories)) {
+            food.calories = 100; // Default if no calories available
+          }
         }
         return food;
       } catch (error) {

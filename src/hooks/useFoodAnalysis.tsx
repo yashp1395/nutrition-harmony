@@ -43,7 +43,9 @@ export const useFoodAnalysis = () => {
       if (results && results.length > 0) {
         const geminiCalories = results[0].calories;
         console.log(`Gemini calories for ${foodName}: ${geminiCalories}, API Ninjas calories: ${currentCalories}`);
-        return geminiCalories || currentCalories;
+        if (geminiCalories && !isNaN(geminiCalories)) {
+          return geminiCalories;
+        }
       }
       
       return currentCalories;
@@ -112,21 +114,30 @@ export const useFoodAnalysis = () => {
         
         // If found in database, use that data
         if (dbNutrition) {
-          // Correct calories with Gemini
-          const correctedCalories = await correctCaloriesWithGemini(item.name, dbNutrition.calories);
+          // If there are already calories provided directly in the item, prioritize those
+          let itemCalories = item.calories;
+          if (!itemCalories || isNaN(itemCalories)) {
+            // Only correct with Gemini if we don't already have calories
+            itemCalories = await correctCaloriesWithGemini(item.name, dbNutrition.calories);
+          }
           
           nutritionData = {
             ...dbNutrition,
-            calories: correctedCalories
+            calories: itemCalories
           };
         } else {
-          // Otherwise use the enhanced nutrition data with Gemini calorie correction
-          const apiCalories = item.calories || 100;
-          const correctedCalories = await correctCaloriesWithGemini(item.name, apiCalories);
+          // Otherwise use the enhanced nutrition data
+          // First check if we already have calories from the API response
+          let finalCalories = item.calories;
+          
+          // If no calories or invalid calories, try to get from Gemini
+          if (!finalCalories || isNaN(finalCalories)) {
+            finalCalories = await correctCaloriesWithGemini(item.name, 100); // Default to 100 if nothing else
+          }
           
           nutritionData = createEstimatedNutrition(
             item.name, 
-            correctedCalories, 
+            finalCalories, 
             item.nutrients
           );
         }
@@ -192,6 +203,9 @@ export const useFoodAnalysis = () => {
         if (geminiResults && geminiResults.length > 0) {
           const geminiNutrition = geminiResults[0];
           
+          // Make sure we have a valid calories value
+          const calories = geminiNutrition.calories || 100; // Default to 100 if not provided
+          
           setDetectedFoods([...detectedFoods, {
             name: geminiNutrition.name,
             confidence: 1,
@@ -199,10 +213,10 @@ export const useFoodAnalysis = () => {
               id: `gemini-${geminiNutrition.name}`,
               name: geminiNutrition.name,
               category: 'detected',
-              calories: geminiNutrition.calories,
-              protein: geminiNutrition.protein,
-              carbs: geminiNutrition.carbs,
-              fat: geminiNutrition.fat,
+              calories: calories,
+              protein: geminiNutrition.protein || 0,
+              carbs: geminiNutrition.carbs || 0,
+              fat: geminiNutrition.fat || 0,
               fiber: geminiNutrition.fiber || 1,
               is_indian_cuisine: false,
               servingSize: geminiNutrition.servingSize

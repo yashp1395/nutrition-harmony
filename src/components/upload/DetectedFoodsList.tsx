@@ -60,7 +60,7 @@ const DetectedFoodsList = ({ detectedFoods, onRemoveFood }: DetectedFoodsListPro
       </div>
 
       <Card className="mt-4 bg-primary/10">
-        <CardContent className="p-4">
+        <CardContent className="p-4 text-gray-500">
           <h3 className="font-semibold mb-2">Total Nutrition</h3>
           <div className="grid grid-cols-4 gap-2">
             <div>

@@ -22,8 +22,8 @@ const ImagePreview = ({ preview, analyzing, onRemove, onAnalyze }: ImagePreviewP
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
             <div className="bg-white/90 rounded-lg p-4 shadow-lg flex flex-col items-center">
               <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
-              <p className="text-sm font-medium">Analyzing image...</p>
-              <p className="text-xs text-gray-500 mt-1">Using Gemini AI for food detection</p>
+              <p className="text-sm text-gray-500 font-medium">Analyzing image...</p>
+              {/* <p className="text-xs text-gray-500 mt-1">Using Gemini AI for food detection</p> */}
             </div>
           </div>
         )}

@@ -23,25 +23,25 @@ const DetectedFoodsList = ({ detectedFoods, onRemoveFood }: DetectedFoodsListPro
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <p className="font-medium text-lg capitalize">{food.name}</p>
-                    <Badge variant="outline" className="ml-2">
+                    <Badge variant="outline" className="ml-2 text-white">
                       {food.servingSize}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-4 gap-2 mt-2 text-sm">
                     <div>
-                      <p className="font-medium text-gray-700">Calories</p>
+                      <p className="font-medium text-white">Calories</p>
                       <p>{food.nutrition?.calories} kcal</p>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-700">Protein</p>
+                      <p className="font-medium text-white">Protein</p>
                       <p>{food.nutrition?.protein}g</p>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-700">Carbs</p>
+                      <p className="font-medium text-white">Carbs</p>
                       <p>{food.nutrition?.carbs}g</p>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-700">Fat</p>
+                      <p className="font-medium text-white">Fat</p>
                       <p>{food.nutrition?.fat}g</p>
                     </div>
                   </div>
@@ -59,7 +59,7 @@ const DetectedFoodsList = ({ detectedFoods, onRemoveFood }: DetectedFoodsListPro
         ))}
       </div>
 
-      <Card className="mt-4 bg-primary/10">
+      {/* <Card className="mt-4 bg-primary/10">
         <CardContent className="p-4 text-gray-500">
           <h3 className="font-semibold mb-2">Total Nutrition</h3>
           <div className="grid grid-cols-4 gap-2">
@@ -81,7 +81,7 @@ const DetectedFoodsList = ({ detectedFoods, onRemoveFood }: DetectedFoodsListPro
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 };

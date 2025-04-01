@@ -35,13 +35,13 @@ export const analyzeWithGemini = async (imageBase64) => {
     ]);
 
     const responseText = await result.response.text();
-    console.log("Gemini API response:", responseText);
+    console.log("API response:", responseText);
 
     // Parse the text response
     const parsedFoods = parseGeminiResponse(responseText);
     
     if (parsedFoods.length === 0) {
-      throw new Error("Gemini API couldn't identify any food in the image");
+      throw new Error("API couldn't identify any food in the image");
     }
 
     return {
@@ -54,8 +54,8 @@ export const analyzeWithGemini = async (imageBase64) => {
       }]
     };
   } catch (error) {
-    console.error("Error calling Gemini:", error);
-    throw new Error("Gemini API failed: " + error.message);
+    console.error("Error calling API:", error);
+    throw new Error("API failed: " + error.message);
   }
 };
 
@@ -82,7 +82,7 @@ export const parseGeminiResponse = (responseText) => {
   }
 
   if (detectedFoods.length === 0) {
-    console.warn("No structured food data detected from Gemini API, trying fallback parsing");
+    console.warn("No structured food data detected from API, trying fallback parsing");
     
     // Try a simpler regex as fallback
     const simpleRegex = /([\w\s\-,']+)[\s\-:]+(\d+)\s*calories/gi;

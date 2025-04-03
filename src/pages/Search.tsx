@@ -166,7 +166,7 @@ const Search = () => {
             <div className="flex justify-center my-8">
               <div className="flex flex-col items-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
-                <p className="text-gray-600">Searching with Gemini AI...</p>
+                <p className="text-gray-600">Searching...</p>
               </div>
             </div>
           )}

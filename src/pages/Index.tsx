@@ -1,3 +1,4 @@
+
 import Navbar from "../components/Navbar";
 import SearchBar from "../components/SearchBar";
 import { Apple, Carrot, Coffee, Search, Upload, User, ChevronRight, ArrowRight, CheckCircle } from "lucide-react";
@@ -39,7 +40,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
       <Navbar />
       
-      <main className="pt-16">
+      <main>
         {/* Hero Section */}
         <div className="relative overflow-hidden">
           {/* Background pattern */}

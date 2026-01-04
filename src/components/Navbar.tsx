@@ -1,9 +1,8 @@
-
 import { Link, useNavigate } from "react-router-dom";
-import { Home, Search, Upload, User, Info } from "lucide-react";
+import { Home, Search, Upload, User, Info, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
-import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import GetStartedButton from "./common/GetStartedButton";
 import { useTheme } from "../hooks/useTheme";
@@ -28,6 +27,25 @@ const Navbar = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+      });
+    }
+  };
 
   return (
     <nav className="bg-white dark:bg-gray-800 shadow-sm">
@@ -56,10 +74,19 @@ const Navbar = () => {
               <span>About</span>
             </Link>
             {isAuthenticated ? (
-              <Link to="/profile" className="nav-link">
-                <User className="w-5 h-5" />
-                <span>Profile</span>
-              </Link>
+              <>
+                <Link to="/profile" className="nav-link">
+                  <User className="w-5 h-5" />
+                  <span>Profile</span>
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="nav-link text-destructive hover:text-destructive"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>Logout</span>
+                </button>
+              </>
             ) : (
               <Link to="/auth" className="nav-link">
                 <User className="w-5 h-5" />

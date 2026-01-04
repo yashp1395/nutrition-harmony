@@ -3,6 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { UserProfile, NutritionGoal } from "../types/user.types";
 
+interface NutritionGoalRow {
+  id: string;
+  user_id: string;
+  name: string;
+  current: number;
+  target: number;
+  unit: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const useProfile = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -39,7 +50,7 @@ export const useProfile = () => {
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
         
       if (error) {
         console.error('Error fetching profile:', error);
@@ -54,11 +65,9 @@ export const useProfile = () => {
           full_name: data.full_name,
           email: data.email,
           avatar_url: data.avatar_url,
-          is_premium: data.is_premium,
-          theme_preference: data.theme_preference,
+          is_premium: data.is_premium ?? false,
         });
         
-        // Set premium status
         setIsPremium(data.is_premium || false);
         console.log("Premium status set to:", data.is_premium || false);
       }
@@ -95,16 +104,16 @@ export const useProfile = () => {
       console.log("Goals data:", data);
       
       if (data && data.length > 0) {
-        setGoals(data.map(goal => ({
+        const mappedGoals: NutritionGoal[] = (data as NutritionGoalRow[]).map(goal => ({
           id: goal.id,
           user_id: goal.user_id,
           name: goal.name,
-          current: goal.current,
-          target: goal.target,
+          current: Number(goal.current),
+          target: Number(goal.target),
           unit: goal.unit
-        })));
+        }));
+        setGoals(mappedGoals);
       } else {
-        // If no goals found, create default goals
         console.log("No goals found, creating defaults");
         await createDefaultGoals(session.user.id);
       }
@@ -137,7 +146,15 @@ export const useProfile = () => {
       console.log("Default goals created:", data);
       
       if (data) {
-        setGoals(data);
+        const mappedGoals: NutritionGoal[] = (data as NutritionGoalRow[]).map(goal => ({
+          id: goal.id,
+          user_id: goal.user_id,
+          name: goal.name,
+          current: Number(goal.current),
+          target: Number(goal.target),
+          unit: goal.unit
+        }));
+        setGoals(mappedGoals);
       }
     } catch (error) {
       console.error('Error creating default goals:', error);
@@ -176,7 +193,7 @@ export const useProfile = () => {
         
         const { error } = await supabase
           .from('nutrition_goals')
-          .update({ target: goal.target })
+          .update({ target: goal.target, current: goal.current })
           .eq('id', goal.id);
           
         if (error) {
@@ -185,7 +202,6 @@ export const useProfile = () => {
       }
       
       setGoals(updatedGoals);
-      toast.success('Goals updated successfully');
     } catch (error) {
       console.error('Error updating goals:', error);
       toast.error('Failed to update goals');
@@ -219,14 +235,13 @@ export const useProfile = () => {
         .from('profiles')
         .select('is_premium')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
         
       if (profileError) {
         console.error("Error fetching profile:", profileError);
         throw profileError;
       }
       
-      // If already premium, just return true
       if (profile?.is_premium) {
         console.log("User is already premium");
         setIsPremium(true);
@@ -246,7 +261,7 @@ export const useProfile = () => {
       console.log("Premium status updated successfully");
       
       setIsPremium(true);
-      await fetchProfile(); // Refresh user data
+      await fetchProfile();
       return true;
     } catch (error) {
       console.error('Error updating premium status:', error);

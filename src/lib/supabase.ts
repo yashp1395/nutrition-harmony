@@ -1,58 +1,54 @@
+// Re-export the supabase client from integrations
+import { supabase } from '@/integrations/supabase/client';
+import type { UserMeal, FoodItem } from '../types/database.types';
 
-import { createClient } from '@supabase/supabase-js';
-import type { UserMeal } from '../types/database.types';
+export { supabase };
 
-const supabaseUrl = 'https://njasjoepdafcpjicrfud.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qYXNqb2VwZGFmY3BqaWNyZnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg2NTE0MDYsImV4cCI6MjA1NDIyNzQwNn0.oBIOYkKJGozaYJEnDsfSmDA5YBqmK7Gl_fKFANetma8';
-
-if (!supabaseUrl) {
-  throw new Error('Missing Supabase URL');
-}
-
-if (!supabaseAnonKey) {
-  throw new Error('Missing Supabase anon key');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
+// Note: food_items table may not exist in your database yet
+// These functions will return empty arrays if the table doesn't exist
+export const getFoodItems = async (query: string = ''): Promise<FoodItem[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('food_items' as any)
+      .select('*')
+      .ilike('name', `%${query}%`)
+      .order('name');
+      
+    if (error) {
+      console.warn('food_items table may not exist:', error.message);
+      return [];
+    }
+    return (data as unknown as FoodItem[]) || [];
+  } catch (error) {
+    console.warn('Error fetching food items:', error);
+    return [];
   }
-});
-
-// Debug helper for auth state
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log('Auth state changed:', event, session);
-});
-
-export const getFoodItems = async (query: string = '') => {
-  const { data, error } = await supabase
-    .from('food_items')
-    .select('*')
-    .ilike('name', `%${query}%`)
-    .order('name');
-    
-  if (error) throw error;
-  return data;
 };
 
-export const getIndianFoodItems = async (query: string = '') => {
-  const { data, error } = await supabase
-    .from('food_items')
-    .select('*')
-    .eq('is_indian_cuisine', true)
-    .ilike('name', `%${query}%`)
-    .order('name');
-    
-  if (error) throw error;
-  return data;
+export const getIndianFoodItems = async (query: string = ''): Promise<FoodItem[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('food_items' as any)
+      .select('*')
+      .eq('is_indian_cuisine', true)
+      .ilike('name', `%${query}%`)
+      .order('name');
+      
+    if (error) {
+      console.warn('food_items table may not exist:', error.message);
+      return [];
+    }
+    return (data as unknown as FoodItem[]) || [];
+  } catch (error) {
+    console.warn('Error fetching Indian food items:', error);
+    return [];
+  }
 };
 
 export const addUserMeal = async (meal: Omit<UserMeal, 'id'>) => {
   const { data, error } = await supabase
     .from('user_meals')
-    .insert(meal)
+    .insert(meal as any)
     .select()
     .single();
     

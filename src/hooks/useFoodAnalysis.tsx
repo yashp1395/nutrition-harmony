@@ -1,10 +1,11 @@
-
 import { useState } from "react";
-import { analyzeImage } from "../utils/visionApi";
+import { supabase } from "@/integrations/supabase/client";
 import { getFoodItems } from "../lib/supabase";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { searchFoodWithGemini } from "../utils/gemini/foodSearch";
 import type { FoodItem, DetectedFood } from "../types/database.types";
+
+const ANALYZE_FOOD_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-food`;
 
 export const useFoodAnalysis = () => {
   const [analyzing, setAnalyzing] = useState(false);
@@ -19,40 +20,6 @@ export const useFoodAnalysis = () => {
     } catch (error) {
       console.error('Error matching food:', error);
       return null;
-    }
-  };
-
-  const createEstimatedNutrition = (foodName: string, calories: number, nutrients: any) => {
-    return {
-      id: `api-${foodName}`,
-      name: foodName,
-      category: 'detected',
-      calories: calories || 100,
-      protein: nutrients?.protein || 2,
-      carbs: nutrients?.carbs || 15,
-      fat: nutrients?.fat || 5,
-      fiber: nutrients?.fiber || 1,
-      is_indian_cuisine: false
-    };
-  };
-
-  const correctCaloriesWithGemini = async (foodName: string, currentCalories: number): Promise<number> => {
-    try {
-      console.log(`Getting corrected calories for ${foodName} from Gemini...`);
-      const results = await searchFoodWithGemini(foodName);
-      
-      if (results && results.length > 0) {
-        const geminiCalories = results[0].calories;
-        console.log(`Gemini calories for ${foodName}: ${geminiCalories}, current calories: ${currentCalories}`);
-        if (geminiCalories && !isNaN(geminiCalories)) {
-          return geminiCalories;
-        }
-      }
-      
-      return currentCalories;
-    } catch (error) {
-      console.error(`Failed to get corrected calories from Gemini for ${foodName}:`, error);
-      return currentCalories;
     }
   };
 
@@ -73,87 +40,62 @@ export const useFoodAnalysis = () => {
         });
       }, 200);
 
-      console.log("Starting image analysis with Gemini...");
+      console.log("Starting image analysis with Lovable AI...");
       
-      // Analyze image using API
-      const visionResult = await analyzeImage(imageDataUrl);
-      
-      if (!visionResult || !visionResult.responses || visionResult.responses.length === 0) {
-        throw new Error("Failed to get a valid response from the image analysis API");
-      }
-      
-      // Extract detected objects
-      const detectedItems: {[key: string]: any} = {};
-      
-      console.log("API result:", visionResult);
-      
-      // Add objects with their details
-      if (visionResult.responses[0].localizedObjectAnnotations) {
-        visionResult.responses[0].localizedObjectAnnotations.forEach((obj: any) => {
-          detectedItems[obj.name] = {
-            name: obj.name,
-            confidence: obj.confidence || 0.8,
-            servingSize: obj.servingSize || 'Standard serving',
-            calories: obj.calories,
-            nutrients: obj.nutrients
-          };
-        });
-      }
-
-      if (Object.keys(detectedItems).length === 0) {
-        throw new Error("No food items detected in the image");
-      }
-
-      console.log("Detected food items:", Object.keys(detectedItems));
-
-      // Process detected items
-      const foodPromises = Object.values(detectedItems).map(async (item: any) => {
-        // Try to match with our database first
-        const dbNutrition = await matchFoodWithDatabase(item.name);
-        
-        let nutritionData;
-        
-        // If found in database, use that data
-        if (dbNutrition) {
-          // If there are already calories provided directly in the item, prioritize those
-          let itemCalories = item.calories;
-          if (!itemCalories || isNaN(itemCalories)) {
-            // Only correct with Gemini if we don't already have calories
-            itemCalories = await correctCaloriesWithGemini(item.name, dbNutrition.calories);
-          }
-          
-          nutritionData = {
-            ...dbNutrition,
-            calories: itemCalories
-          };
-        } else {
-          // Use the Gemini-provided nutrition data
-          // First check if we already have calories from the API response
-          let finalCalories = item.calories;
-          
-          // If no calories or invalid calories, try to get from Gemini
-          if (!finalCalories || isNaN(finalCalories)) {
-            finalCalories = await correctCaloriesWithGemini(item.name, 100); // Default to 100 if nothing else
-          }
-          
-          nutritionData = createEstimatedNutrition(
-            item.name, 
-            finalCalories, 
-            item.nutrients
-          );
-        }
-        
-        return {
-          name: item.name,
-          confidence: item.confidence,
-          servingSize: item.servingSize,
-          nutrition: nutritionData
-        };
+      // Call the edge function
+      const response = await fetch(ANALYZE_FOOD_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ imageBase64: imageDataUrl }),
       });
 
-      const foods = await Promise.all(foodPromises);
-      setDetectedFoods(foods);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        if (response.status === 429) {
+          throw new Error("Rate limit exceeded. Please wait a moment and try again.");
+        }
+        if (response.status === 402) {
+          throw new Error("AI credits exhausted. Please add credits to continue using AI analysis.");
+        }
+        
+        throw new Error(errorData.error || "Failed to analyze image");
+      }
 
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      if (!result.foods || result.foods.length === 0) {
+        throw new Error("No food items detected in the image. Please try with a clearer image.");
+      }
+
+      console.log("AI detected foods:", result.foods);
+
+      // Process detected items
+      const foods: DetectedFood[] = result.foods.map((item: any) => ({
+        name: item.name,
+        confidence: item.confidence || 0.9,
+        servingSize: item.servingSize || 'Standard serving',
+        nutrition: {
+          id: `ai-${item.name}-${Date.now()}`,
+          name: item.name,
+          category: 'detected',
+          calories: item.calories || 100,
+          protein: item.protein || 0,
+          carbs: item.carbs || 0,
+          fat: item.fat || 0,
+          fiber: item.fiber || 0,
+          is_indian_cuisine: false,
+        }
+      }));
+
+      setDetectedFoods(foods);
       clearInterval(progressInterval);
       setProgress(100);
       
@@ -179,16 +121,10 @@ export const useFoodAnalysis = () => {
       const dbNutrition = await matchFoodWithDatabase(foodName);
       
       if (dbNutrition) {
-        // Use database nutrition data with Gemini calorie correction
-        const correctedCalories = await correctCaloriesWithGemini(foodName, dbNutrition.calories);
-        
         setDetectedFoods([...detectedFoods, {
           name: foodName,
           confidence: 1,
-          nutrition: {
-            ...dbNutrition,
-            calories: correctedCalories
-          },
+          nutrition: dbNutrition,
           isManualEntry: true
         }]);
         
@@ -203,9 +139,7 @@ export const useFoodAnalysis = () => {
         
         if (geminiResults && geminiResults.length > 0) {
           const geminiNutrition = geminiResults[0];
-          
-          // Make sure we have a valid calories value
-          const calories = geminiNutrition.calories || 100; // Default to 100 if not provided
+          const calories = geminiNutrition.calories || 100;
           
           setDetectedFoods([...detectedFoods, {
             name: geminiNutrition.name,
@@ -235,7 +169,7 @@ export const useFoodAnalysis = () => {
           toast({
             variant: "destructive",
             title: "Food Not Found",
-            description: "This food item was not found in our database or Gemini API",
+            description: "This food item was not found. Please try a different name.",
           });
           return false;
         }

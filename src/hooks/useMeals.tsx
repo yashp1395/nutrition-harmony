@@ -1,18 +1,44 @@
-
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { MealEntry, NutritionGoal } from "../types/user.types";
 import { useNavigate } from "react-router-dom";
 
+interface UserMealRow {
+  id: string;
+  user_id: string;
+  meal_name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  meal_time: string;
+  created_at: string;
+  updated_at: string;
+}
+
+const mapDbMealToMealEntry = (dbMeal: UserMealRow): MealEntry => ({
+  id: dbMeal.id,
+  user_id: dbMeal.user_id,
+  name: dbMeal.meal_name,
+  time: new Date(dbMeal.meal_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+  date: new Date(dbMeal.meal_time).toISOString().split('T')[0],
+  calories: Number(dbMeal.calories),
+  protein: Number(dbMeal.protein),
+  carbs: Number(dbMeal.carbs),
+  fat: Number(dbMeal.fat),
+});
+
 export const useMeals = (updateGoals?: (goals: NutritionGoal[]) => void, goals?: NutritionGoal[]) => {
   const [meals, setMeals] = useState<MealEntry[]>([]);
+  const [allMeals, setAllMeals] = useState<MealEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     fetchTodaysMeals();
+    fetchAllMeals();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -25,27 +51,61 @@ export const useMeals = (updateGoals?: (goals: NutritionGoal[]) => void, goals?:
       if (!session) {
         return;
       }
+
+      const startOfDay = new Date(today);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(today);
+      endOfDay.setHours(23, 59, 59, 999);
       
       const { data, error } = await supabase
-        .from('meals')
+        .from('user_meals')
         .select('*')
         .eq('user_id', session.user.id)
-        .eq('date', today)
-        .order('time', { ascending: true });
+        .gte('meal_time', startOfDay.toISOString())
+        .lte('meal_time', endOfDay.toISOString())
+        .order('meal_time', { ascending: true });
         
       if (error) {
         throw error;
       }
       
       if (data) {
-        setMeals(data);
-        updateNutritionTotals(data);
+        const mappedMeals = data.map(mapDbMealToMealEntry);
+        setMeals(mappedMeals);
+        updateNutritionTotals(mappedMeals);
       }
     } catch (error) {
       console.error('Error fetching meals:', error);
       toast.error('Failed to load today\'s meals');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllMeals = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('user_meals')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('meal_time', { ascending: false })
+        .limit(50);
+        
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setAllMeals(data.map(mapDbMealToMealEntry));
+      }
+    } catch (error) {
+      console.error('Error fetching all meals:', error);
     }
   };
 
@@ -86,13 +146,17 @@ export const useMeals = (updateGoals?: (goals: NutritionGoal[]) => void, goals?:
       }
       
       const newMeal = {
-        ...meal,
         user_id: session.user.id,
-        date: today
+        meal_name: meal.name,
+        calories: meal.calories,
+        protein: meal.protein || 0,
+        carbs: meal.carbs || 0,
+        fat: meal.fat || 0,
+        meal_time: new Date().toISOString(),
       };
       
       const { data, error } = await supabase
-        .from('meals')
+        .from('user_meals')
         .insert(newMeal)
         .select()
         .single();
@@ -103,11 +167,12 @@ export const useMeals = (updateGoals?: (goals: NutritionGoal[]) => void, goals?:
       
       toast.success('Meal saved successfully');
       
-      // Update meals list and nutrition totals
-      setMeals(prev => [...prev, data]);
-      updateNutritionTotals([...meals, data]);
+      const mappedMeal = mapDbMealToMealEntry(data);
+      setMeals(prev => [...prev, mappedMeal]);
+      setAllMeals(prev => [mappedMeal, ...prev]);
+      updateNutritionTotals([...meals, mappedMeal]);
       
-      return data;
+      return mappedMeal;
     } catch (error) {
       console.error('Error saving meal:', error);
       toast.error('Failed to save meal');
@@ -118,7 +183,7 @@ export const useMeals = (updateGoals?: (goals: NutritionGoal[]) => void, goals?:
   const deleteMeal = async (mealId: string) => {
     try {
       const { error } = await supabase
-        .from('meals')
+        .from('user_meals')
         .delete()
         .eq('id', mealId);
         
@@ -128,6 +193,7 @@ export const useMeals = (updateGoals?: (goals: NutritionGoal[]) => void, goals?:
       
       const updatedMeals = meals.filter(meal => meal.id !== mealId);
       setMeals(updatedMeals);
+      setAllMeals(prev => prev.filter(meal => meal.id !== mealId));
       updateNutritionTotals(updatedMeals);
       
       toast.success('Meal deleted successfully');
@@ -139,9 +205,16 @@ export const useMeals = (updateGoals?: (goals: NutritionGoal[]) => void, goals?:
 
   const updateMeal = async (mealId: string, updates: Partial<MealEntry>) => {
     try {
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.name !== undefined) dbUpdates.meal_name = updates.name;
+      if (updates.calories !== undefined) dbUpdates.calories = updates.calories;
+      if (updates.protein !== undefined) dbUpdates.protein = updates.protein;
+      if (updates.carbs !== undefined) dbUpdates.carbs = updates.carbs;
+      if (updates.fat !== undefined) dbUpdates.fat = updates.fat;
+
       const { data, error } = await supabase
-        .from('meals')
-        .update(updates)
+        .from('user_meals')
+        .update(dbUpdates)
         .eq('id', mealId)
         .select()
         .single();
@@ -150,11 +223,13 @@ export const useMeals = (updateGoals?: (goals: NutritionGoal[]) => void, goals?:
         throw error;
       }
       
+      const mappedMeal = mapDbMealToMealEntry(data);
       const updatedMeals = meals.map(meal => 
-        meal.id === mealId ? { ...meal, ...data } : meal
+        meal.id === mealId ? mappedMeal : meal
       );
       
       setMeals(updatedMeals);
+      setAllMeals(prev => prev.map(meal => meal.id === mealId ? mappedMeal : meal));
       updateNutritionTotals(updatedMeals);
       
       toast.success('Meal updated successfully');
@@ -170,11 +245,13 @@ export const useMeals = (updateGoals?: (goals: NutritionGoal[]) => void, goals?:
 
   return {
     meals,
+    allMeals,
     loading,
     saveMeal,
     deleteMeal,
     updateMeal,
     fetchTodaysMeals,
+    fetchAllMeals,
     goToUploadPage
   };
 };
